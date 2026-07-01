@@ -13,4 +13,12 @@ public class RegisterRequest {
     private String password;
 
     private String nickname;
+
+    public void setUsername(String username) {
+        this.username = username != null ? username.trim() : null;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname != null ? nickname.trim() : null;
+    }
 }
