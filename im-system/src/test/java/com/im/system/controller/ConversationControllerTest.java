@@ -1,0 +1,298 @@
+package com.im.system.controller;
+
+import com.im.system.common.JwtUtil;
+import com.im.system.dto.CreateConversationRequest;
+import com.im.system.dto.RegisterRequest;
+import com.im.system.entity.Conversation;
+import com.im.system.entity.User;
+import com.im.system.repository.ConversationMemberRepository;
+import com.im.system.repository.ConversationRepository;
+import com.im.system.repository.UserRepository;
+import com.im.system.service.ConversationService;
+import com.im.system.service.UserService;
+import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.Arrays;
+
+import static org.hamcrest.Matchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@SpringBootTest
+@AutoConfigureMockMvc(addFilters = false)
+@Transactional
+class ConversationControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private ConversationRepository conversationRepository;
+
+    @Autowired
+    private ConversationMemberRepository conversationMemberRepository;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private ConversationService conversationService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    private User user1;
+    private User user2;
+    private String user1Token;
+
+    @BeforeEach
+    void setUp() {
+        userRepository.deleteAll();
+        conversationRepository.deleteAll();
+        conversationMemberRepository.deleteAll();
+
+        RegisterRequest user1Request = new RegisterRequest();
+        user1Request.setUsername("user1");
+        user1Request.setPassword("test123");
+        user1 = userService.register(user1Request);
+
+        RegisterRequest user2Request = new RegisterRequest();
+        user2Request.setUsername("user2");
+        user2Request.setPassword("test123");
+        user2 = userService.register(user2Request);
+
+        user1Token = jwtUtil.generateToken(user1.getId(), user1.getUsername());
+    }
+
+    @Test
+    @DisplayName("GET /api/conversations - 获取会话列表")
+    void getUserConversations_shouldReturnSuccess() throws Exception {
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("PRIVATE");
+        createRequest.setMemberIds(Arrays.asList(user2.getId()));
+        conversationService.createConversation(user1.getId(), createRequest);
+
+        mockMvc.perform(get("/api/conversations")
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data", hasSize(greaterThanOrEqualTo(1))));
+    }
+
+    @Test
+    @DisplayName("GET /api/conversations - 获取空会话列表")
+    void getUserConversations_shouldReturnEmptyList() throws Exception {
+        mockMvc.perform(get("/api/conversations")
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data", hasSize(0)));
+    }
+
+    @Test
+    @DisplayName("GET /api/conversations - 未授权访问")
+    void getUserConversations_shouldReturnErrorWhenUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/conversations"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations - 创建会话")
+    void createConversation_shouldReturnSuccess() throws Exception {
+        String jsonRequest = String.format("""
+                {
+                    "type": "PRIVATE",
+                    "memberIds": [%d],
+                    "name": "Test Conversation"
+                }
+                """, user2.getId());
+
+        mockMvc.perform(post("/api/conversations")
+                        .header("Authorization", "Bearer " + user1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data.type").value("PRIVATE"))
+                .andExpect(jsonPath("$.data.name").value("Test Conversation"))
+                .andExpect(jsonPath("$.data.id").exists());
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations - 创建群聊")
+    void createConversation_shouldReturnSuccessForGroup() throws Exception {
+        RegisterRequest user3Request = new RegisterRequest();
+        user3Request.setUsername("user3");
+        user3Request.setPassword("test123");
+        User user3 = userService.register(user3Request);
+
+        String jsonRequest = String.format("""
+                {
+                    "type": "GROUP",
+                    "memberIds": [%d, %d],
+                    "name": "Group Chat"
+                }
+                """, user2.getId(), user3.getId());
+
+        mockMvc.perform(post("/api/conversations")
+                        .header("Authorization", "Bearer " + user1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.type").value("GROUP"))
+                .andExpect(jsonPath("$.data.name").value("Group Chat"));
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations - 未授权访问")
+    void createConversation_shouldReturnErrorWhenUnauthorized() throws Exception {
+        String jsonRequest = String.format("""
+                {
+                    "type": "PRIVATE",
+                    "memberIds": [%d]
+                }
+                """, user2.getId());
+
+        mockMvc.perform(post("/api/conversations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations - 类型不能为空")
+    void createConversation_shouldReturnErrorWhenTypeBlank() throws Exception {
+        String jsonRequest = String.format("""
+                {
+                    "type": "",
+                    "memberIds": [%d]
+                }
+                """, user2.getId());
+
+        mockMvc.perform(post("/api/conversations")
+                        .header("Authorization", "Bearer " + user1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations - 成员列表不能为空")
+    void createConversation_shouldReturnErrorWhenMemberIdsEmpty() throws Exception {
+        String jsonRequest = """
+                {
+                    "type": "PRIVATE",
+                    "memberIds": []
+                }
+                """;
+
+        mockMvc.perform(post("/api/conversations")
+                        .header("Authorization", "Bearer " + user1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("GET /api/conversations/{id} - 获取会话详情")
+    void getConversationById_shouldReturnSuccess() throws Exception {
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("PRIVATE");
+        createRequest.setMemberIds(Arrays.asList(user2.getId()));
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        mockMvc.perform(get("/api/conversations/{id}", conversation.getId())
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data.id").value(conversation.getId()))
+                .andExpect(jsonPath("$.data.type").value("PRIVATE"));
+    }
+
+    @Test
+    @DisplayName("GET /api/conversations/{id} - 会话不存在")
+    void getConversationById_shouldReturnErrorWhenConversationNotFound() throws Exception {
+        mockMvc.perform(get("/api/conversations/{id}", 99999L)
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("GET /api/conversations/{id} - 无权访问会话")
+    void getConversationById_shouldReturnErrorWhenNotMember() throws Exception {
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("PRIVATE");
+        createRequest.setMemberIds(Arrays.asList(user2.getId()));
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        String user2Token = jwtUtil.generateToken(user2.getId(), user2.getUsername());
+
+        mockMvc.perform(get("/api/conversations/{id}", conversation.getId())
+                        .header("Authorization", "Bearer " + user2Token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+    }
+
+    @Test
+    @DisplayName("GET /api/conversations/{id} - 未授权访问")
+    void getConversationById_shouldReturnErrorWhenUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/conversations/{id}", 1L))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/conversations/{id} - 删除会话")
+    void deleteConversation_shouldReturnSuccess() throws Exception {
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("PRIVATE");
+        createRequest.setMemberIds(Arrays.asList(user2.getId()));
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        mockMvc.perform(delete("/api/conversations/{id}", conversation.getId())
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/conversations/{id} - 删除不存在的会话")
+    void deleteConversation_shouldReturnErrorWhenConversationNotFound() throws Exception {
+        mockMvc.perform(delete("/api/conversations/{id}", 99999L)
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/conversations/{id} - 未授权访问")
+    void deleteConversation_shouldReturnErrorWhenUnauthorized() throws Exception {
+        mockMvc.perform(delete("/api/conversations/{id}", 1L))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+}

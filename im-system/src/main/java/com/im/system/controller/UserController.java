@@ -26,12 +26,14 @@ public class UserController {
     }
 
     @GetMapping
-    public Result<List<User>> getAllUsers() {
+    public Result<List<User>> getAllUsers(HttpServletRequest request) {
+        getUserIdFromRequest(request);
         return Result.success(userService.findAll());
     }
 
     @GetMapping("/{id}")
-    public Result<User> getUserById(@PathVariable Long id) {
+    public Result<User> getUserById(@PathVariable Long id, HttpServletRequest request) {
+        getUserIdFromRequest(request);
         User user = userService.findById(id).orElseThrow(() -> new RuntimeException("用户不存在"));
         return Result.success(user);
     }

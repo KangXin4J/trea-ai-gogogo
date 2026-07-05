@@ -1,0 +1,242 @@
+package com.im.system.controller;
+
+import com.im.system.common.JwtUtil;
+import com.im.system.dto.RegisterRequest;
+import com.im.system.dto.SendMessageRequest;
+import com.im.system.entity.Message;
+import com.im.system.entity.User;
+import com.im.system.repository.MessageRepository;
+import com.im.system.repository.UserRepository;
+import com.im.system.service.MessageService;
+import com.im.system.service.UserService;
+import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.hamcrest.Matchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@SpringBootTest
+@AutoConfigureMockMvc(addFilters = false)
+@Transactional
+class MessageControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private MessageRepository messageRepository;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private MessageService messageService;
+
+    @Autowired
+    private com.im.system.service.ConversationService conversationService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    private User sender;
+    private User receiver;
+    private String senderToken;
+
+    @BeforeEach
+    void setUp() {
+        userRepository.deleteAll();
+        messageRepository.deleteAll();
+
+        RegisterRequest senderRequest = new RegisterRequest();
+        senderRequest.setUsername("sender");
+        senderRequest.setPassword("test123");
+        sender = userService.register(senderRequest);
+
+        RegisterRequest receiverRequest = new RegisterRequest();
+        receiverRequest.setUsername("receiver");
+        receiverRequest.setPassword("test123");
+        receiver = userService.register(receiverRequest);
+
+        senderToken = jwtUtil.generateToken(sender.getId(), sender.getUsername());
+    }
+
+    @Test
+    @DisplayName("POST /api/messages/send - 成功发送消息")
+    void sendMessage_shouldReturnSuccess() throws Exception {
+        String jsonRequest = String.format("""
+                {
+                    "receiverId": %d,
+                    "content": "Hello, World!"
+                }
+                """, receiver.getId());
+
+        mockMvc.perform(post("/api/messages/send")
+                        .header("Authorization", "Bearer " + senderToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data.content").value("Hello, World!"))
+                .andExpect(jsonPath("$.data.senderId").value(sender.getId()))
+                .andExpect(jsonPath("$.data.receiverId").value(receiver.getId()))
+                .andExpect(jsonPath("$.data.isRead").value(false))
+                .andExpect(jsonPath("$.data.id").exists());
+    }
+
+    @Test
+    @DisplayName("POST /api/messages/send - 未授权访问")
+    void sendMessage_shouldReturnErrorWhenUnauthorized() throws Exception {
+        String jsonRequest = String.format("""
+                {
+                    "receiverId": %d,
+                    "content": "Hello"
+                }
+                """, receiver.getId());
+
+        mockMvc.perform(post("/api/messages/send")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/messages/send - 消息内容不能为空")
+    void sendMessage_shouldReturnErrorWhenContentBlank() throws Exception {
+        String jsonRequest = String.format("""
+                {
+                    "receiverId": %d,
+                    "content": ""
+                }
+                """, receiver.getId());
+
+        mockMvc.perform(post("/api/messages/send")
+                        .header("Authorization", "Bearer " + senderToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/messages/send - 接收者ID不能为空")
+    void sendMessage_shouldReturnErrorWhenReceiverIdNull() throws Exception {
+        String jsonRequest = """
+                {
+                    "receiverId": null,
+                    "content": "Hello"
+                }
+                """;
+
+        mockMvc.perform(post("/api/messages/send")
+                        .header("Authorization", "Bearer " + senderToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("GET /api/messages/conversation/{userId} - 获取对话消息")
+    void getConversationMessages_shouldReturnSuccess() throws Exception {
+        SendMessageRequest sendRequest = new SendMessageRequest();
+        sendRequest.setReceiverId(receiver.getId());
+        sendRequest.setContent("First message");
+        messageService.sendMessage(sender.getId(), sendRequest);
+
+        mockMvc.perform(get("/api/messages/conversation/{userId}", receiver.getId())
+                        .header("Authorization", "Bearer " + senderToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].content").value("First message"));
+    }
+
+    @Test
+    @DisplayName("GET /api/messages/conversation/{userId} - 未授权访问")
+    void getConversationMessages_shouldReturnErrorWhenUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/messages/conversation/{userId}", receiver.getId()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("GET /api/messages/unread-count - 获取未读消息数")
+    void getUnreadCount_shouldReturnSuccess() throws Exception {
+        SendMessageRequest sendRequest = new SendMessageRequest();
+        sendRequest.setReceiverId(receiver.getId());
+        sendRequest.setContent("Unread message");
+        messageService.sendMessage(sender.getId(), sendRequest);
+
+        String receiverToken = jwtUtil.generateToken(receiver.getId(), receiver.getUsername());
+
+        mockMvc.perform(get("/api/messages/unread-count")
+                        .header("Authorization", "Bearer " + receiverToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data").value(1));
+    }
+
+    @Test
+    @DisplayName("GET /api/messages/unread-count - 无未读消息")
+    void getUnreadCount_shouldReturnZeroWhenNoUnread() throws Exception {
+        mockMvc.perform(get("/api/messages/unread-count")
+                        .header("Authorization", "Bearer " + senderToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data").value(0));
+    }
+
+    @Test
+    @DisplayName("GET /api/messages/unread-count - 未授权访问")
+    void getUnreadCount_shouldReturnErrorWhenUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/messages/unread-count"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/messages/mark-read/{conversationId} - 标记消息已读")
+    void markAsRead_shouldReturnSuccess() throws Exception {
+        com.im.system.dto.CreateConversationRequest createRequest = new com.im.system.dto.CreateConversationRequest();
+        createRequest.setType("PRIVATE");
+        createRequest.setMemberIds(java.util.Arrays.asList(receiver.getId()));
+        com.im.system.entity.Conversation conversation = conversationService.createConversation(sender.getId(), createRequest);
+
+        SendMessageRequest sendRequest = new SendMessageRequest();
+        sendRequest.setReceiverId(receiver.getId());
+        sendRequest.setContent("Test message");
+        sendRequest.setConversationId(conversation.getId());
+        messageService.sendMessage(sender.getId(), sendRequest);
+
+        String receiverToken = jwtUtil.generateToken(receiver.getId(), receiver.getUsername());
+
+        mockMvc.perform(post("/api/messages/mark-read/{conversationId}", conversation.getId())
+                        .header("Authorization", "Bearer " + receiverToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"));
+    }
+
+    @Test
+    @DisplayName("POST /api/messages/mark-read/{conversationId} - 未授权访问")
+    void markAsRead_shouldReturnErrorWhenUnauthorized() throws Exception {
+        mockMvc.perform(post("/api/messages/mark-read/{conversationId}", 1L))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+}
