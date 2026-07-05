@@ -511,4 +511,106 @@ class ConversationControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400));
     }
+
+    @Test
+    @DisplayName("DELETE /api/conversations/{id}/members/{memberId} - 移除成员成功")
+    void removeMember_shouldReturnSuccess() throws Exception {
+        RegisterRequest user3Request = new RegisterRequest();
+        user3Request.setUsername("user3");
+        user3Request.setPassword("test123");
+        User user3 = userService.register(user3Request);
+
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("GROUP");
+        createRequest.setMemberIds(Arrays.asList(user2.getId(), user3.getId()));
+        createRequest.setName("Test Group");
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        mockMvc.perform(delete("/api/conversations/{id}/members/{memberId}", conversation.getId(), user3.getId())
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data", hasSize(2)));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/conversations/{id}/members/{memberId} - 可以移除自己（退出会话）")
+    void removeMember_shouldReturnSuccessWhenRemovingSelf() throws Exception {
+        RegisterRequest user3Request = new RegisterRequest();
+        user3Request.setUsername("user3");
+        user3Request.setPassword("test123");
+        User user3 = userService.register(user3Request);
+
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("GROUP");
+        createRequest.setMemberIds(Arrays.asList(user2.getId(), user3.getId()));
+        createRequest.setName("Test Group");
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        mockMvc.perform(delete("/api/conversations/{id}/members/{memberId}", conversation.getId(), user1.getId())
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data", hasSize(2)));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/conversations/{id}/members/{memberId} - 用户不是会话成员")
+    void removeMember_shouldReturnErrorWhenMemberNotFound() throws Exception {
+        RegisterRequest user3Request = new RegisterRequest();
+        user3Request.setUsername("user3");
+        user3Request.setPassword("test123");
+        User user3 = userService.register(user3Request);
+
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("PRIVATE");
+        createRequest.setMemberIds(Arrays.asList(user2.getId()));
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        mockMvc.perform(delete("/api/conversations/{id}/members/{memberId}", conversation.getId(), user3.getId())
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/conversations/{id}/members/{memberId} - 会话不存在")
+    void removeMember_shouldReturnErrorWhenConversationNotFound() throws Exception {
+        mockMvc.perform(delete("/api/conversations/{id}/members/{memberId}", 99999L, user2.getId())
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/conversations/{id}/members/{memberId} - 未授权访问")
+    void removeMember_shouldReturnErrorWhenUnauthorized() throws Exception {
+        mockMvc.perform(delete("/api/conversations/{id}/members/{memberId}", 1L, 1L))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("DELETE /api/conversations/{id}/members/{memberId} - 无权访问会话")
+    void removeMember_shouldReturnErrorWhenNotMember() throws Exception {
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("PRIVATE");
+        createRequest.setMemberIds(Arrays.asList(user2.getId()));
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        RegisterRequest user3Request = new RegisterRequest();
+        user3Request.setUsername("user3");
+        user3Request.setPassword("test123");
+        User user3 = userService.register(user3Request);
+        String user3Token = jwtUtil.generateToken(user3.getId(), user3.getUsername());
+
+        mockMvc.perform(delete("/api/conversations/{id}/members/{memberId}", conversation.getId(), user2.getId())
+                        .header("Authorization", "Bearer " + user3Token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
 }

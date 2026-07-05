@@ -128,4 +128,21 @@ public class ConversationServiceImpl implements ConversationService {
 
         return conversationMemberRepository.findMembersByConversationId(conversationId);
     }
+
+    @Override
+    @Transactional
+    public List<ConversationMemberDTO> removeMember(Long userId, Long conversationId, Long memberId) {
+        conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("会话不存在"));
+
+        conversationMemberRepository.findByConversationIdAndUserId(conversationId, userId)
+                .orElseThrow(() -> new RuntimeException("无权访问该会话"));
+
+        ConversationMember member = conversationMemberRepository.findByConversationIdAndUserId(conversationId, memberId)
+                .orElseThrow(() -> new RuntimeException("用户不是会话成员"));
+
+        conversationMemberRepository.delete(member);
+
+        return conversationMemberRepository.findMembersByConversationId(conversationId);
+    }
 }

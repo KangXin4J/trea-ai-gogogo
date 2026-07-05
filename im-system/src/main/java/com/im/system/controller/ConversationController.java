@@ -70,6 +70,15 @@ public class ConversationController {
         return Result.success(members);
     }
 
+    @DeleteMapping("/{id}/members/{memberId}")
+    public Result<List<ConversationMemberDTO>> removeMember(@PathVariable Long id,
+                                                            @PathVariable Long memberId,
+                                                            HttpServletRequest httpRequest) {
+        Long userId = getUserIdFromRequest(httpRequest);
+        List<ConversationMemberDTO> members = conversationService.removeMember(userId, id, memberId);
+        return Result.success(members);
+    }
+
     private Long getUserIdFromRequest(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {

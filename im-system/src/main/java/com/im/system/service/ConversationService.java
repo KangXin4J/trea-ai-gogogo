@@ -22,4 +22,6 @@ public interface ConversationService {
     List<ConversationMemberDTO> getConversationMembers(Long userId, Long conversationId);
 
     List<ConversationMemberDTO> addMembers(Long userId, Long conversationId, AddMembersRequest request);
+
+    List<ConversationMemberDTO> removeMember(Long userId, Long conversationId, Long memberId);
 }
