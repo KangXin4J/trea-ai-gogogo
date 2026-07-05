@@ -24,7 +24,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public String login(LoginRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
+        String username = request.getUsername().trim();
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("用户名或密码错误"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
@@ -40,14 +41,15 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
+        String username = request.getUsername().trim();
+        if (userRepository.existsByUsername(username)) {
             throw new RuntimeException("用户名已存在");
         }
 
         User user = new User();
-        user.setUsername(request.getUsername());
+        user.setUsername(username);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setNickname(request.getNickname() != null ? request.getNickname() : request.getUsername());
+        user.setNickname(request.getNickname() != null ? request.getNickname() : username);
         user.setStatus("OFFLINE");
 
         return userRepository.save(user);

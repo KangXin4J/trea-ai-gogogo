@@ -3,6 +3,7 @@ package com.im.system.service.impl;
 import com.im.system.dto.SendMessageRequest;
 import com.im.system.entity.Message;
 import com.im.system.repository.MessageRepository;
+import com.im.system.service.ConversationService;
 import com.im.system.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import java.util.List;
 public class MessageServiceImpl implements MessageService {
 
     private final MessageRepository messageRepository;
+    private final ConversationService conversationService;
 
     @Override
     @Transactional
@@ -27,7 +29,13 @@ public class MessageServiceImpl implements MessageService {
         message.setConversationId(request.getConversationId());
         message.setIsRead(false);
 
-        return messageRepository.save(message);
+        Message savedMessage = messageRepository.save(message);
+
+        if (request.getConversationId() != null) {
+            conversationService.updateConversationLastMessage(request.getConversationId(), request.getContent());
+        }
+
+        return savedMessage;
     }
 
     @Override

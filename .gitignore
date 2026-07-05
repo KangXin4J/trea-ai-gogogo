@@ -1,1 +1,93 @@
-/im-system/
+### --- Java & Spring Boot --- ###
+*.class
+*.log
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# 排除构建目录
+target/
+build/
+out/
+
+# Spring Boot 默认日志文件
+logs/
+*.log
+
+# 热部署相关 (JRebel 等)
+rebel.xml
+
+
+### --- Maven --- ###
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+# 建议保留 mvnw 及其相关配置，以便他人无需安装 Maven 即可运行
+# !.mvn/wrapper/maven-wrapper.jar
+# !mvnw
+# !mvnw.cmd
+
+
+### --- Gradle --- ###
+.gradle
+/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# 缓存与运行状态
+bin/
+inc/
+.metadata/
+
+
+### --- IntelliJ IDEA --- ###
+.idea/
+*.iws
+*.iml
+*.ipr
+# 如果你希望分享运行配置，可以注释掉下面这行
+# !.idea/runConfigurations
+
+
+### --- Eclipse --- ###
+.settings/
+.project
+.classpath
+.factorypath
+
+
+### --- VS Code --- ###
+.vscode/
+
+
+### --- 操作系统临时文件 --- ###
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+desktop.ini
+
+# Linux
+*~
+
+
+### --- 配置与敏感信息 (推荐) --- ###
+# 排除包含密码或密钥的本地配置文件
+application-local.properties
+application-local.yml
+application-local.yaml
+*.jks
+*.p12
+*.key

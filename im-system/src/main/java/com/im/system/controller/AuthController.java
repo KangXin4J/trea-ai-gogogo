@@ -23,7 +23,8 @@ public class AuthController {
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@Valid @RequestBody LoginRequest request) {
         String token = userService.login(request);
-        User user = userService.findByUsername(request.getUsername()).orElseThrow();
+        String username = request.getUsername().trim();
+        User user = userService.findByUsername(username).orElseThrow();
 
         Map<String, Object> data = new HashMap<>();
         data.put("token", token);
