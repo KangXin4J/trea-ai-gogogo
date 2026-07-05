@@ -1,5 +1,6 @@
 package com.im.system.service;
 
+import com.im.system.dto.ConversationMemberDTO;
 import com.im.system.dto.CreateConversationRequest;
 import com.im.system.entity.Conversation;
 
@@ -16,4 +17,6 @@ public interface ConversationService {
     void deleteConversation(Long userId, Long conversationId);
 
     void updateConversationLastMessage(Long conversationId, String content);
+
+    List<ConversationMemberDTO> getConversationMembers(Long userId, Long conversationId);
 }

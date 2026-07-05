@@ -295,4 +295,42 @@ class ConversationControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400));
     }
+
+    @Test
+    @DisplayName("GET /api/conversations/{id}/members - 获取会话成员列表")
+    void getConversationMembers_shouldReturnSuccess() throws Exception {
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("PRIVATE");
+        createRequest.setMemberIds(Arrays.asList(user2.getId()));
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        mockMvc.perform(get("/api/conversations/{id}/members", conversation.getId())
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data", hasSize(2)))
+                .andExpect(jsonPath("$.data[*].userId").exists())
+                .andExpect(jsonPath("$.data[*].username").exists())
+                .andExpect(jsonPath("$.data[*].nickname").exists())
+                .andExpect(jsonPath("$.data[*].avatar").exists());
+    }
+
+    @Test
+    @DisplayName("GET /api/conversations/{id}/members - 会话不存在")
+    void getConversationMembers_shouldReturnErrorWhenConversationNotFound() throws Exception {
+        mockMvc.perform(get("/api/conversations/{id}/members", 99999L)
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("GET /api/conversations/{id}/members - 未授权访问")
+    void getConversationMembers_shouldReturnErrorWhenUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/conversations/{id}/members", 1L))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
 }

@@ -1,5 +1,6 @@
 package com.im.system.repository;
 
+import com.im.system.dto.ConversationMemberDTO;
 import com.im.system.entity.ConversationMember;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -24,4 +25,7 @@ public interface ConversationMemberRepository extends JpaRepository<Conversation
     @Transactional
     @Query("DELETE FROM ConversationMember cm WHERE cm.conversationId = :conversationId")
     void deleteByConversationId(@Param("conversationId") Long conversationId);
+
+    @Query("SELECT new com.im.system.dto.ConversationMemberDTO(u.id, u.username, u.nickname, u.avatar) FROM ConversationMember cm JOIN User u ON cm.userId = u.id WHERE cm.conversationId = :conversationId")
+    List<ConversationMemberDTO> findMembersByConversationId(@Param("conversationId") Long conversationId);
 }

@@ -2,6 +2,7 @@ package com.im.system.controller;
 
 import com.im.system.common.JwtUtil;
 import com.im.system.common.Result;
+import com.im.system.dto.ConversationMemberDTO;
 import com.im.system.dto.CreateConversationRequest;
 import com.im.system.entity.Conversation;
 import com.im.system.service.ConversationService;
@@ -49,6 +50,14 @@ public class ConversationController {
         Long userId = getUserIdFromRequest(httpRequest);
         conversationService.deleteConversation(userId, id);
         return Result.success();
+    }
+
+    @GetMapping("/{id}/members")
+    public Result<List<ConversationMemberDTO>> getConversationMembers(@PathVariable Long id,
+                                                                       HttpServletRequest httpRequest) {
+        Long userId = getUserIdFromRequest(httpRequest);
+        List<ConversationMemberDTO> members = conversationService.getConversationMembers(userId, id);
+        return Result.success(members);
     }
 
     private Long getUserIdFromRequest(HttpServletRequest request) {

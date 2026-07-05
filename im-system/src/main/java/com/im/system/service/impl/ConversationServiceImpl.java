@@ -1,5 +1,6 @@
 package com.im.system.service.impl;
 
+import com.im.system.dto.ConversationMemberDTO;
 import com.im.system.dto.CreateConversationRequest;
 import com.im.system.entity.Conversation;
 import com.im.system.entity.ConversationMember;
@@ -82,5 +83,16 @@ public class ConversationServiceImpl implements ConversationService {
         conversation.setLastMessage(content);
         conversation.setLastMessageTime(LocalDateTime.now());
         conversationRepository.save(conversation);
+    }
+
+    @Override
+    public List<ConversationMemberDTO> getConversationMembers(Long userId, Long conversationId) {
+        conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("会话不存在"));
+
+        conversationMemberRepository.findByConversationIdAndUserId(conversationId, userId)
+                .orElseThrow(() -> new RuntimeException("无权访问该会话"));
+
+        return conversationMemberRepository.findMembersByConversationId(conversationId);
     }
 }
