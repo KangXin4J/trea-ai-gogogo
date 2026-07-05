@@ -1,11 +1,13 @@
 package com.im.system.service.impl;
 
+import com.im.system.dto.AddMembersRequest;
 import com.im.system.dto.ConversationMemberDTO;
 import com.im.system.dto.CreateConversationRequest;
 import com.im.system.entity.Conversation;
 import com.im.system.entity.ConversationMember;
 import com.im.system.repository.ConversationMemberRepository;
 import com.im.system.repository.ConversationRepository;
+import com.im.system.repository.UserRepository;
 import com.im.system.service.ConversationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,7 @@ public class ConversationServiceImpl implements ConversationService {
 
     private final ConversationRepository conversationRepository;
     private final ConversationMemberRepository conversationMemberRepository;
+    private final UserRepository userRepository;
 
     @Override
     public List<Conversation> getUserConversations(Long userId) {
@@ -92,6 +95,36 @@ public class ConversationServiceImpl implements ConversationService {
 
         conversationMemberRepository.findByConversationIdAndUserId(conversationId, userId)
                 .orElseThrow(() -> new RuntimeException("无权访问该会话"));
+
+        return conversationMemberRepository.findMembersByConversationId(conversationId);
+    }
+
+    @Override
+    @Transactional
+    public List<ConversationMemberDTO> addMembers(Long userId, Long conversationId, AddMembersRequest request) {
+        conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("会话不存在"));
+
+        conversationMemberRepository.findByConversationIdAndUserId(conversationId, userId)
+                .orElseThrow(() -> new RuntimeException("无权访问该会话"));
+
+        for (Long memberId : request.getMemberIds()) {
+            if (!memberId.equals(userId)) {
+                if (!userRepository.existsById(memberId)) {
+                    throw new RuntimeException("用户不存在");
+                }
+
+                conversationMemberRepository.findByConversationIdAndUserId(conversationId, memberId)
+                        .ifPresent(member -> {
+                            throw new RuntimeException("用户已在会话中");
+                        });
+
+                ConversationMember member = new ConversationMember();
+                member.setConversationId(conversationId);
+                member.setUserId(memberId);
+                conversationMemberRepository.save(member);
+            }
+        }
 
         return conversationMemberRepository.findMembersByConversationId(conversationId);
     }

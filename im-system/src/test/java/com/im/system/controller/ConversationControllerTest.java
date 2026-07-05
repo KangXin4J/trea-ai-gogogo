@@ -353,4 +353,162 @@ class ConversationControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400));
     }
+
+    @Test
+    @DisplayName("POST /api/conversations/{id}/members - 添加成员到会话")
+    void addMembers_shouldReturnSuccess() throws Exception {
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("GROUP");
+        createRequest.setMemberIds(Arrays.asList(user2.getId()));
+        createRequest.setName("Test Group");
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        RegisterRequest user3Request = new RegisterRequest();
+        user3Request.setUsername("user3");
+        user3Request.setPassword("test123");
+        User user3 = userService.register(user3Request);
+
+        String jsonRequest = String.format("""
+                {
+                    "memberIds": [%d]
+                }
+                """, user3.getId());
+
+        mockMvc.perform(post("/api/conversations/{id}/members", conversation.getId())
+                        .header("Authorization", "Bearer " + user1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data", hasSize(3)));
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations/{id}/members - 添加已存在的成员")
+    void addMembers_shouldReturnErrorWhenMemberAlreadyExists() throws Exception {
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("PRIVATE");
+        createRequest.setMemberIds(Arrays.asList(user2.getId()));
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        String jsonRequest = String.format("""
+                {
+                    "memberIds": [%d]
+                }
+                """, user2.getId());
+
+        mockMvc.perform(post("/api/conversations/{id}/members", conversation.getId())
+                        .header("Authorization", "Bearer " + user1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations/{id}/members - 会话不存在")
+    void addMembers_shouldReturnErrorWhenConversationNotFound() throws Exception {
+        String jsonRequest = String.format("""
+                {
+                    "memberIds": [%d]
+                }
+                """, user2.getId());
+
+        mockMvc.perform(post("/api/conversations/{id}/members", 99999L)
+                        .header("Authorization", "Bearer " + user1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations/{id}/members - 未授权访问")
+    void addMembers_shouldReturnErrorWhenUnauthorized() throws Exception {
+        String jsonRequest = String.format("""
+                {
+                    "memberIds": [%d]
+                }
+                """, user2.getId());
+
+        mockMvc.perform(post("/api/conversations/{id}/members", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations/{id}/members - 无权访问会话")
+    void addMembers_shouldReturnErrorWhenNotMember() throws Exception {
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("PRIVATE");
+        createRequest.setMemberIds(Arrays.asList(user2.getId()));
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        RegisterRequest user3Request = new RegisterRequest();
+        user3Request.setUsername("user3");
+        user3Request.setPassword("test123");
+        User user3 = userService.register(user3Request);
+        String user3Token = jwtUtil.generateToken(user3.getId(), user3.getUsername());
+
+        String jsonRequest = String.format("""
+                {
+                    "memberIds": [%d]
+                }
+                """, user3.getId());
+
+        mockMvc.perform(post("/api/conversations/{id}/members", conversation.getId())
+                        .header("Authorization", "Bearer " + user3Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations/{id}/members - 成员列表不能为空")
+    void addMembers_shouldReturnErrorWhenMemberIdsEmpty() throws Exception {
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("GROUP");
+        createRequest.setMemberIds(Arrays.asList(user2.getId()));
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        String jsonRequest = """
+                {
+                    "memberIds": []
+                }
+                """;
+
+        mockMvc.perform(post("/api/conversations/{id}/members", conversation.getId())
+                        .header("Authorization", "Bearer " + user1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations/{id}/members - 添加不存在的用户")
+    void addMembers_shouldReturnErrorWhenUserNotFound() throws Exception {
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("GROUP");
+        createRequest.setMemberIds(Arrays.asList(user2.getId()));
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        String jsonRequest = """
+                {
+                    "memberIds": [99999]
+                }
+                """;
+
+        mockMvc.perform(post("/api/conversations/{id}/members", conversation.getId())
+                        .header("Authorization", "Bearer " + user1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
 }
