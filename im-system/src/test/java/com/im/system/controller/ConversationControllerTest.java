@@ -333,4 +333,24 @@ class ConversationControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400));
     }
+
+    @Test
+    @DisplayName("GET /api/conversations/{id}/members - 无权访问会话")
+    void getConversationMembers_shouldReturnErrorWhenNotMember() throws Exception {
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("PRIVATE");
+        createRequest.setMemberIds(Arrays.asList(user2.getId()));
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        RegisterRequest user3Request = new RegisterRequest();
+        user3Request.setUsername("user3");
+        user3Request.setPassword("test123");
+        User user3 = userService.register(user3Request);
+        String user3Token = jwtUtil.generateToken(user3.getId(), user3.getUsername());
+
+        mockMvc.perform(get("/api/conversations/{id}/members", conversation.getId())
+                        .header("Authorization", "Bearer " + user3Token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
 }
