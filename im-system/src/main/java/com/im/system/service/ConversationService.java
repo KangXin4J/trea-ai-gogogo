@@ -29,5 +29,7 @@ public interface ConversationService {
 
     List<ConversationMemberDTO> removeMember(Long userId, Long conversationId, Long memberId);
 
+    void leaveConversation(Long userId, Long conversationId);
+
     PageResponse<Conversation> searchConversations(Long userId, String keyword, int page, int size);
 }
