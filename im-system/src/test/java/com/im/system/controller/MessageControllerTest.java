@@ -52,6 +52,7 @@ class MessageControllerTest {
     private User sender;
     private User receiver;
     private String senderToken;
+    private com.im.system.entity.Conversation conversation;
 
     @BeforeEach
     void setUp() {
@@ -69,6 +70,11 @@ class MessageControllerTest {
         receiver = userService.register(receiverRequest);
 
         senderToken = jwtUtil.generateToken(sender.getId(), sender.getUsername());
+
+        com.im.system.dto.CreateConversationRequest createRequest = new com.im.system.dto.CreateConversationRequest();
+        createRequest.setType("PRIVATE");
+        createRequest.setMemberIds(java.util.Arrays.asList(receiver.getId()));
+        conversation = conversationService.createConversation(sender.getId(), createRequest);
     }
 
     @Test
@@ -77,9 +83,10 @@ class MessageControllerTest {
         String jsonRequest = String.format("""
                 {
                     "receiverId": %d,
+                    "conversationId": %d,
                     "content": "Hello, World!"
                 }
-                """, receiver.getId());
+                """, receiver.getId(), conversation.getId());
 
         mockMvc.perform(post("/api/messages/send")
                         .header("Authorization", "Bearer " + senderToken)
@@ -131,11 +138,47 @@ class MessageControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/messages/send - 接收者ID不能为空")
-    void sendMessage_shouldReturnErrorWhenReceiverIdNull() throws Exception {
+    @DisplayName("POST /api/messages/send - 接收者ID和会话ID都为空")
+    void sendMessage_shouldReturnErrorWhenReceiverIdAndConversationIdNull() throws Exception {
         String jsonRequest = """
                 {
                     "receiverId": null,
+                    "content": "Hello"
+                }
+                """;
+
+        mockMvc.perform(post("/api/messages/send")
+                        .header("Authorization", "Bearer " + senderToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/messages/send - 接收者不存在")
+    void sendMessage_shouldReturnErrorWhenReceiverNotExists() throws Exception {
+        String jsonRequest = """
+                {
+                    "receiverId": 99999,
+                    "content": "Hello"
+                }
+                """;
+
+        mockMvc.perform(post("/api/messages/send")
+                        .header("Authorization", "Bearer " + senderToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/messages/send - 会话不存在")
+    void sendMessage_shouldReturnErrorWhenConversationNotExists() throws Exception {
+        String jsonRequest = """
+                {
+                    "conversationId": 99999,
                     "content": "Hello"
                 }
                 """;

@@ -2,7 +2,10 @@ package com.im.system.service.impl;
 
 import com.im.system.dto.SendMessageRequest;
 import com.im.system.entity.Message;
+import com.im.system.repository.ConversationMemberRepository;
+import com.im.system.repository.ConversationRepository;
 import com.im.system.repository.MessageRepository;
+import com.im.system.repository.UserRepository;
 import com.im.system.service.ConversationService;
 import com.im.system.service.MessageService;
 import lombok.RequiredArgsConstructor;
@@ -17,10 +20,33 @@ public class MessageServiceImpl implements MessageService {
 
     private final MessageRepository messageRepository;
     private final ConversationService conversationService;
+    private final UserRepository userRepository;
+    private final ConversationRepository conversationRepository;
+    private final ConversationMemberRepository conversationMemberRepository;
 
     @Override
     @Transactional
     public Message sendMessage(Long senderId, SendMessageRequest request) {
+        if (!userRepository.existsById(senderId)) {
+            throw new RuntimeException("发送者不存在");
+        }
+
+        if (request.getReceiverId() != null && !userRepository.existsById(request.getReceiverId())) {
+            throw new RuntimeException("接收者不存在");
+        }
+
+        if (request.getConversationId() == null) {
+            throw new RuntimeException("会话ID不能为空");
+        }
+
+        if (!conversationRepository.existsById(request.getConversationId())) {
+            throw new RuntimeException("会话不存在");
+        }
+
+        if (!conversationMemberRepository.existsByConversationIdAndUserId(request.getConversationId(), senderId)) {
+            throw new RuntimeException("无权发送消息到该会话");
+        }
+
         Message message = new Message();
         message.setSenderId(senderId);
         message.setReceiverId(request.getReceiverId());
@@ -31,9 +57,7 @@ public class MessageServiceImpl implements MessageService {
 
         Message savedMessage = messageRepository.save(message);
 
-        if (request.getConversationId() != null) {
-            conversationService.updateConversationLastMessage(request.getConversationId(), request.getContent());
-        }
+        conversationService.updateConversationLastMessage(request.getConversationId(), request.getContent());
 
         return savedMessage;
     }
