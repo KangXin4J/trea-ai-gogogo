@@ -71,6 +71,9 @@ public class ConversationServiceImpl implements ConversationService {
     @Override
     @Transactional
     public void deleteConversation(Long userId, Long conversationId) {
+        conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("会话不存在"));
+
         conversationMemberRepository.findByConversationIdAndUserId(conversationId, userId)
                 .orElseThrow(() -> new RuntimeException("无权删除该会话"));
 

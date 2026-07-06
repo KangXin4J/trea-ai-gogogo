@@ -297,6 +297,26 @@ class ConversationControllerTest {
     }
 
     @Test
+    @DisplayName("DELETE /api/conversations/{id} - 非成员用户无权删除会话")
+    void deleteConversation_shouldReturnErrorWhenNotMember() throws Exception {
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("PRIVATE");
+        createRequest.setMemberIds(Arrays.asList(user2.getId()));
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        RegisterRequest user3Request = new RegisterRequest();
+        user3Request.setUsername("user3");
+        user3Request.setPassword("test123");
+        User user3 = userService.register(user3Request);
+        String user3Token = jwtUtil.generateToken(user3.getId(), user3.getUsername());
+
+        mockMvc.perform(delete("/api/conversations/{id}", conversation.getId())
+                        .header("Authorization", "Bearer " + user3Token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
     @DisplayName("GET /api/conversations/{id}/members - 获取会话成员列表")
     void getConversationMembers_shouldReturnSuccess() throws Exception {
         CreateConversationRequest createRequest = new CreateConversationRequest();
