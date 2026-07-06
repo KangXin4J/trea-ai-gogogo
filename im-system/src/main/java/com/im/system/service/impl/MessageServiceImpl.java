@@ -43,9 +43,8 @@ public class MessageServiceImpl implements MessageService {
             throw new RuntimeException("会话不存在");
         }
 
-        if (!conversationMemberRepository.existsByConversationIdAndUserId(request.getConversationId(), senderId)) {
-            throw new RuntimeException("无权发送消息到该会话");
-        }
+        conversationMemberRepository.findByConversationIdAndUserId(request.getConversationId(), senderId)
+                .orElseThrow(() -> new RuntimeException("无权发送消息到该会话"));
 
         Message message = new Message();
         message.setSenderId(senderId);

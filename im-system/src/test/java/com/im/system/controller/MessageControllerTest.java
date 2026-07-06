@@ -108,9 +108,10 @@ class MessageControllerTest {
         String jsonRequest = String.format("""
                 {
                     "receiverId": %d,
+                    "conversationId": %d,
                     "content": "Hello"
                 }
-                """, receiver.getId());
+                """, receiver.getId(), conversation.getId());
 
         mockMvc.perform(post("/api/messages/send")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -125,9 +126,10 @@ class MessageControllerTest {
         String jsonRequest = String.format("""
                 {
                     "receiverId": %d,
+                    "conversationId": %d,
                     "content": ""
                 }
-                """, receiver.getId());
+                """, receiver.getId(), conversation.getId());
 
         mockMvc.perform(post("/api/messages/send")
                         .header("Authorization", "Bearer " + senderToken)
@@ -196,6 +198,7 @@ class MessageControllerTest {
     void getConversationMessages_shouldReturnSuccess() throws Exception {
         SendMessageRequest sendRequest = new SendMessageRequest();
         sendRequest.setReceiverId(receiver.getId());
+        sendRequest.setConversationId(conversation.getId());
         sendRequest.setContent("First message");
         messageService.sendMessage(sender.getId(), sendRequest);
 
@@ -221,6 +224,7 @@ class MessageControllerTest {
     void getUnreadCount_shouldReturnSuccess() throws Exception {
         SendMessageRequest sendRequest = new SendMessageRequest();
         sendRequest.setReceiverId(receiver.getId());
+        sendRequest.setConversationId(conversation.getId());
         sendRequest.setContent("Unread message");
         messageService.sendMessage(sender.getId(), sendRequest);
 
