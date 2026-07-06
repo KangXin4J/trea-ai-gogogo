@@ -74,6 +74,13 @@ public class MessageController {
         return Result.success(messages);
     }
 
+    @DeleteMapping("/{messageId}")
+    public Result<Void> deleteMessage(@PathVariable Long messageId, HttpServletRequest httpRequest) {
+        Long userId = getUserIdFromRequest(httpRequest);
+        messageService.deleteMessage(messageId, userId);
+        return Result.success();
+    }
+
     private Long getUserIdFromRequest(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {

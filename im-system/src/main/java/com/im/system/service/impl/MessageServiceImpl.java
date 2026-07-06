@@ -122,4 +122,17 @@ public class MessageServiceImpl implements MessageService {
                 .forEach(m -> m.setIsRead(true));
         messageRepository.saveAll(messages);
     }
+
+    @Override
+    @Transactional
+    public void deleteMessage(Long messageId, Long userId) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("消息不存在"));
+
+        if (!message.getSenderId().equals(userId)) {
+            throw new RuntimeException("只能删除自己发送的消息");
+        }
+
+        messageRepository.delete(message);
+    }
 }

@@ -21,4 +21,6 @@ public interface MessageService {
     long getUnreadCount(Long userId);
 
     void markAsRead(Long userId, Long conversationId);
+
+    void deleteMessage(Long messageId, Long userId);
 }
