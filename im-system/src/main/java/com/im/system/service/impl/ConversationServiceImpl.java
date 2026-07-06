@@ -191,4 +191,32 @@ public class ConversationServiceImpl implements ConversationService {
         Page<Conversation> conversationPage = conversationRepository.searchByUserIdAndName(userId, keyword, pageable);
         return new PageResponse<>(conversationPage.getContent(), page, size, conversationPage.getTotalElements());
     }
+
+    @Override
+    @Transactional
+    public void pinConversation(Long userId, Long conversationId) {
+        conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("会话不存在"));
+
+        ConversationMember member = conversationMemberRepository.findByConversationIdAndUserId(conversationId, userId)
+                .orElseThrow(() -> new RuntimeException("无权操作该会话"));
+
+        member.setPinned(true);
+        member.setPinnedAt(LocalDateTime.now());
+        conversationMemberRepository.save(member);
+    }
+
+    @Override
+    @Transactional
+    public void unpinConversation(Long userId, Long conversationId) {
+        conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("会话不存在"));
+
+        ConversationMember member = conversationMemberRepository.findByConversationIdAndUserId(conversationId, userId)
+                .orElseThrow(() -> new RuntimeException("无权操作该会话"));
+
+        member.setPinned(false);
+        member.setPinnedAt(null);
+        conversationMemberRepository.save(member);
+    }
 }

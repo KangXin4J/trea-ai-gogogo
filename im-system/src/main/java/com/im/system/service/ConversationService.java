@@ -32,4 +32,8 @@ public interface ConversationService {
     void leaveConversation(Long userId, Long conversationId);
 
     PageResponse<Conversation> searchConversations(Long userId, String keyword, int page, int size);
+
+    void pinConversation(Long userId, Long conversationId);
+
+    void unpinConversation(Long userId, Long conversationId);
 }

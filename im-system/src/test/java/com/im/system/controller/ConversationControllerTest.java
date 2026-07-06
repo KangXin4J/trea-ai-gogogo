@@ -877,4 +877,54 @@ class ConversationControllerTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value(401));
     }
+
+    @Test
+    @DisplayName("POST /api/conversations/{id}/pin - 置顶会话")
+    void pinConversation_shouldReturnSuccess() throws Exception {
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("PRIVATE");
+        createRequest.setMemberIds(Arrays.asList(user2.getId()));
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        mockMvc.perform(post("/api/conversations/{id}/pin", conversation.getId())
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"));
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations/{id}/pin - 会话不存在")
+    void pinConversation_shouldReturnErrorWhenConversationNotFound() throws Exception {
+        mockMvc.perform(post("/api/conversations/{id}/pin", 99999L)
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations/{id}/unpin - 取消置顶会话")
+    void unpinConversation_shouldReturnSuccess() throws Exception {
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("PRIVATE");
+        createRequest.setMemberIds(Arrays.asList(user2.getId()));
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        conversationService.pinConversation(user1.getId(), conversation.getId());
+
+        mockMvc.perform(post("/api/conversations/{id}/unpin", conversation.getId())
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"));
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations/{id}/unpin - 会话不存在")
+    void unpinConversation_shouldReturnErrorWhenConversationNotFound() throws Exception {
+        mockMvc.perform(post("/api/conversations/{id}/unpin", 99999L)
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
 }

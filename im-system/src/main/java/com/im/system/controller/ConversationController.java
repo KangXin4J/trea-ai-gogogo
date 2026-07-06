@@ -98,6 +98,22 @@ public class ConversationController {
         return Result.success();
     }
 
+    @PostMapping("/{id}/pin")
+    public Result<Void> pinConversation(@PathVariable Long id,
+                                        HttpServletRequest httpRequest) {
+        Long userId = getUserIdFromRequest(httpRequest);
+        conversationService.pinConversation(userId, id);
+        return Result.success();
+    }
+
+    @PostMapping("/{id}/unpin")
+    public Result<Void> unpinConversation(@PathVariable Long id,
+                                          HttpServletRequest httpRequest) {
+        Long userId = getUserIdFromRequest(httpRequest);
+        conversationService.unpinConversation(userId, id);
+        return Result.success();
+    }
+
     @GetMapping("/search")
     public Result<PageResponse<Conversation>> searchConversations(
             @RequestParam String keyword,

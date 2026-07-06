@@ -13,9 +13,9 @@ import java.util.List;
 @Repository
 public interface ConversationRepository extends JpaRepository<Conversation, Long> {
 
-    @Query("SELECT c FROM Conversation c WHERE c.id IN (SELECT cm.conversationId FROM ConversationMember cm WHERE cm.userId = :userId) ORDER BY c.lastMessageTime DESC")
+    @Query("SELECT c FROM Conversation c JOIN ConversationMember cm ON c.id = cm.conversationId WHERE cm.userId = :userId ORDER BY cm.pinnedAt DESC NULLS LAST, c.lastMessageTime DESC")
     List<Conversation> findByUserId(@Param("userId") Long userId);
 
-    @Query("SELECT c FROM Conversation c WHERE c.id IN (SELECT cm.conversationId FROM ConversationMember cm WHERE cm.userId = :userId) AND c.name LIKE %:keyword% ORDER BY c.lastMessageTime DESC")
+    @Query("SELECT c FROM Conversation c JOIN ConversationMember cm ON c.id = cm.conversationId WHERE cm.userId = :userId AND c.name LIKE %:keyword% ORDER BY cm.pinnedAt DESC NULLS LAST, c.lastMessageTime DESC")
     Page<Conversation> searchByUserIdAndName(@Param("userId") Long userId, @Param("keyword") String keyword, Pageable pageable);
 }
