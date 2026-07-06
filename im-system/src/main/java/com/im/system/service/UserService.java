@@ -3,6 +3,7 @@ package com.im.system.service;
 import com.im.system.dto.LoginRequest;
 import com.im.system.dto.PageResponse;
 import com.im.system.dto.RegisterRequest;
+import com.im.system.dto.UpdateUserRequest;
 import com.im.system.entity.User;
 
 import java.util.List;
@@ -23,4 +24,6 @@ public interface UserService {
     PageResponse<User> searchUsers(String keyword, int page, int size);
 
     User updateUserStatus(Long userId, String status);
+
+    User updateProfile(Long userId, UpdateUserRequest request);
 }

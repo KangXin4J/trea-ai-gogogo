@@ -2,6 +2,7 @@ package com.im.system.controller;
 
 import com.im.system.common.JwtUtil;
 import com.im.system.dto.RegisterRequest;
+import com.im.system.dto.UpdateUserRequest;
 import com.im.system.entity.User;
 import com.im.system.repository.UserRepository;
 import com.im.system.service.UserService;
@@ -204,5 +205,43 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.data.content").isArray())
                 .andExpect(jsonPath("$.data.content").isEmpty())
                 .andExpect(jsonPath("$.data.totalElements").value(0));
+    }
+
+    @Test
+    @DisplayName("PUT /api/users/me - 更新用户资料")
+    void updateProfile_shouldReturnSuccess() throws Exception {
+        mockMvc.perform(put("/api/users/me")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nickname\":\"Updated Nickname\",\"avatar\":\"http://example.com/avatar.jpg\",\"signature\":\"Hello World\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data.nickname").value("Updated Nickname"))
+                .andExpect(jsonPath("$.data.avatar").value("http://example.com/avatar.jpg"))
+                .andExpect(jsonPath("$.data.signature").value("Hello World"));
+    }
+
+    @Test
+    @DisplayName("PUT /api/users/me - 部分更新用户资料")
+    void updateProfile_shouldSupportPartialUpdate() throws Exception {
+        mockMvc.perform(put("/api/users/me")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"signature\":\"Just a signature\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.signature").value("Just a signature"))
+                .andExpect(jsonPath("$.data.nickname").value("Test User"));
+    }
+
+    @Test
+    @DisplayName("PUT /api/users/me - 未授权访问")
+    void updateProfile_shouldReturnErrorWhenUnauthorized() throws Exception {
+        mockMvc.perform(put("/api/users/me")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"nickname\":\"Updated\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 }

@@ -4,6 +4,7 @@ import com.im.system.common.JwtUtil;
 import com.im.system.dto.LoginRequest;
 import com.im.system.dto.PageResponse;
 import com.im.system.dto.RegisterRequest;
+import com.im.system.dto.UpdateUserRequest;
 import com.im.system.entity.User;
 import com.im.system.repository.UserRepository;
 import com.im.system.service.UserService;
@@ -87,6 +88,23 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
         user.setStatus(status);
+        return userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public User updateProfile(Long userId, UpdateUserRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+        if (request.getNickname() != null) {
+            user.setNickname(request.getNickname());
+        }
+        if (request.getAvatar() != null) {
+            user.setAvatar(request.getAvatar());
+        }
+        if (request.getSignature() != null) {
+            user.setSignature(request.getSignature());
+        }
         return userRepository.save(user);
     }
 }

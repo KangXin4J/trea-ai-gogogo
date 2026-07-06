@@ -3,6 +3,7 @@ package com.im.system.controller;
 import com.im.system.common.JwtUtil;
 import com.im.system.common.Result;
 import com.im.system.dto.PageResponse;
+import com.im.system.dto.UpdateUserRequest;
 import com.im.system.entity.User;
 import com.im.system.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,6 +24,13 @@ public class UserController {
     public Result<User> getCurrentUser(HttpServletRequest request) {
         Long userId = getUserIdFromRequest(request);
         User user = userService.findById(userId).orElseThrow(() -> new RuntimeException("用户不存在"));
+        return Result.success(user);
+    }
+
+    @PutMapping("/me")
+    public Result<User> updateProfile(@RequestBody UpdateUserRequest request, HttpServletRequest httpRequest) {
+        Long userId = getUserIdFromRequest(httpRequest);
+        User user = userService.updateProfile(userId, request);
         return Result.success(user);
     }
 

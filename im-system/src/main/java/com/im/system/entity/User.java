@@ -28,6 +28,9 @@ public class User {
     @Column(length = 255)
     private String avatar;
 
+    @Column(length = 255)
+    private String signature;
+
     @Column(length = 20)
     private String status;
 
