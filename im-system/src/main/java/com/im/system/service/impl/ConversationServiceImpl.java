@@ -174,6 +174,18 @@ public class ConversationServiceImpl implements ConversationService {
     }
 
     @Override
+    @Transactional
+    public void leaveConversation(Long userId, Long conversationId) {
+        conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("会话不存在"));
+
+        ConversationMember member = conversationMemberRepository.findByConversationIdAndUserId(conversationId, userId)
+                .orElseThrow(() -> new RuntimeException("用户不是会话成员"));
+
+        conversationMemberRepository.delete(member);
+    }
+
+    @Override
     public PageResponse<Conversation> searchConversations(Long userId, String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Conversation> conversationPage = conversationRepository.searchByUserIdAndName(userId, keyword, pageable);

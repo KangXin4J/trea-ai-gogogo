@@ -90,6 +90,14 @@ public class ConversationController {
         return Result.success(members);
     }
 
+    @PostMapping("/{id}/leave")
+    public Result<Void> leaveConversation(@PathVariable Long id,
+                                          HttpServletRequest httpRequest) {
+        Long userId = getUserIdFromRequest(httpRequest);
+        conversationService.leaveConversation(userId, id);
+        return Result.success();
+    }
+
     @GetMapping("/search")
     public Result<PageResponse<Conversation>> searchConversations(
             @RequestParam String keyword,

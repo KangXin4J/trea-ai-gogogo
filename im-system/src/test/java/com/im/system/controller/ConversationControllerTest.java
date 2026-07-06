@@ -819,4 +819,62 @@ class ConversationControllerTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value(401));
     }
+
+    @Test
+    @DisplayName("POST /api/conversations/{id}/leave - 用户退出会话成功")
+    void leaveConversation_shouldReturnSuccess() throws Exception {
+        RegisterRequest user3Request = new RegisterRequest();
+        user3Request.setUsername("user3");
+        user3Request.setPassword("test123");
+        User user3 = userService.register(user3Request);
+
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("GROUP");
+        createRequest.setMemberIds(Arrays.asList(user2.getId(), user3.getId()));
+        createRequest.setName("Test Group");
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        mockMvc.perform(post("/api/conversations/{id}/leave", conversation.getId())
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"));
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations/{id}/leave - 用户不是会话成员")
+    void leaveConversation_shouldReturnErrorWhenNotMember() throws Exception {
+        CreateConversationRequest createRequest = new CreateConversationRequest();
+        createRequest.setType("PRIVATE");
+        createRequest.setMemberIds(Arrays.asList(user2.getId()));
+        Conversation conversation = conversationService.createConversation(user1.getId(), createRequest);
+
+        RegisterRequest user3Request = new RegisterRequest();
+        user3Request.setUsername("user3");
+        user3Request.setPassword("test123");
+        User user3 = userService.register(user3Request);
+        String user3Token = jwtUtil.generateToken(user3.getId(), user3.getUsername());
+
+        mockMvc.perform(post("/api/conversations/{id}/leave", conversation.getId())
+                        .header("Authorization", "Bearer " + user3Token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations/{id}/leave - 会话不存在")
+    void leaveConversation_shouldReturnErrorWhenConversationNotFound() throws Exception {
+        mockMvc.perform(post("/api/conversations/{id}/leave", 99999L)
+                        .header("Authorization", "Bearer " + user1Token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations/{id}/leave - 未授权访问")
+    void leaveConversation_shouldReturnErrorWhenUnauthorized() throws Exception {
+        mockMvc.perform(post("/api/conversations/{id}/leave", 1L))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
+    }
 }
