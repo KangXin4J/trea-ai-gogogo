@@ -116,8 +116,8 @@ class MessageControllerTest {
         mockMvc.perform(post("/api/messages/send")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonRequest))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     @Test
@@ -215,8 +215,8 @@ class MessageControllerTest {
     @DisplayName("GET /api/messages/conversation/{userId} - 未授权访问")
     void getConversationMessages_shouldReturnErrorWhenUnauthorized() throws Exception {
         mockMvc.perform(get("/api/messages/conversation/{userId}", receiver.getId()))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     @Test
@@ -252,8 +252,8 @@ class MessageControllerTest {
     @DisplayName("GET /api/messages/unread-count - 未授权访问")
     void getUnreadCount_shouldReturnErrorWhenUnauthorized() throws Exception {
         mockMvc.perform(get("/api/messages/unread-count"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     @Test
@@ -283,7 +283,7 @@ class MessageControllerTest {
     @DisplayName("POST /api/messages/mark-read/{conversationId} - 未授权访问")
     void markAsRead_shouldReturnErrorWhenUnauthorized() throws Exception {
         mockMvc.perform(post("/api/messages/mark-read/{conversationId}", 1L))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 }

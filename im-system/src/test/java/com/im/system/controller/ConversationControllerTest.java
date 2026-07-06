@@ -108,8 +108,8 @@ class ConversationControllerTest {
     @DisplayName("GET /api/conversations - 未授权访问")
     void getUserConversations_shouldReturnErrorWhenUnauthorized() throws Exception {
         mockMvc.perform(get("/api/conversations"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     @Test
@@ -174,8 +174,8 @@ class ConversationControllerTest {
         mockMvc.perform(post("/api/conversations")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonRequest))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     @Test
@@ -260,8 +260,8 @@ class ConversationControllerTest {
     @DisplayName("GET /api/conversations/{id} - 未授权访问")
     void getConversationById_shouldReturnErrorWhenUnauthorized() throws Exception {
         mockMvc.perform(get("/api/conversations/{id}", 1L))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     @Test
@@ -292,8 +292,8 @@ class ConversationControllerTest {
     @DisplayName("DELETE /api/conversations/{id} - 未授权访问")
     void deleteConversation_shouldReturnErrorWhenUnauthorized() throws Exception {
         mockMvc.perform(delete("/api/conversations/{id}", 1L))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     @Test
@@ -350,8 +350,8 @@ class ConversationControllerTest {
     @DisplayName("GET /api/conversations/{id}/members - 未授权访问")
     void getConversationMembers_shouldReturnErrorWhenUnauthorized() throws Exception {
         mockMvc.perform(get("/api/conversations/{id}/members", 1L))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     @Test
@@ -456,8 +456,8 @@ class ConversationControllerTest {
         mockMvc.perform(post("/api/conversations/{id}/members", 1L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonRequest))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     @Test
@@ -610,8 +610,8 @@ class ConversationControllerTest {
     @DisplayName("DELETE /api/conversations/{id}/members/{memberId} - 未授权访问")
     void removeMember_shouldReturnErrorWhenUnauthorized() throws Exception {
         mockMvc.perform(delete("/api/conversations/{id}/members/{memberId}", 1L, 1L))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     @Test

@@ -1,5 +1,8 @@
 package com.im.system.common;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +17,41 @@ import java.util.Map;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(ExpiredJwtException.class)
+    public ResponseEntity<Result<Void>> handleExpiredJwtException(ExpiredJwtException e) {
+        log.error("JWT token 过期: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Result.error(HttpStatus.UNAUTHORIZED.value(), "登录已过期，请重新登录"));
+    }
+
+    @ExceptionHandler(io.jsonwebtoken.security.SignatureException.class)
+    public ResponseEntity<Result<Void>> handleSignatureException(io.jsonwebtoken.security.SignatureException e) {
+        log.error("JWT token 签名错误: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Result.error(HttpStatus.UNAUTHORIZED.value(), "无效的登录凭证"));
+    }
+
+    @ExceptionHandler(MalformedJwtException.class)
+    public ResponseEntity<Result<Void>> handleMalformedJwtException(MalformedJwtException e) {
+        log.error("JWT token 格式错误: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Result.error(HttpStatus.UNAUTHORIZED.value(), "无效的登录凭证"));
+    }
+
+    @ExceptionHandler(UnsupportedJwtException.class)
+    public ResponseEntity<Result<Void>> handleUnsupportedJwtException(UnsupportedJwtException e) {
+        log.error("JWT token 格式不支持: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Result.error(HttpStatus.UNAUTHORIZED.value(), "无效的登录凭证"));
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<Result<Void>> handleUnauthorizedException(UnauthorizedException e) {
+        log.error("未授权异常: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Result.error(HttpStatus.UNAUTHORIZED.value(), e.getMessage()));
+    }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Result<Void>> handleRuntimeException(RuntimeException e) {

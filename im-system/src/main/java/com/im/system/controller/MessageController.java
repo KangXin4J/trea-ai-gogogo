@@ -56,6 +56,6 @@ public class MessageController {
             String token = authHeader.substring(7);
             return jwtUtil.getUserIdFromToken(token);
         }
-        throw new RuntimeException("未授权");
+        throw new com.im.system.common.UnauthorizedException("未授权，请先登录");
     }
 }

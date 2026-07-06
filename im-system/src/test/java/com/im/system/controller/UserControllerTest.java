@@ -66,8 +66,8 @@ class UserControllerTest {
     @DisplayName("GET /api/users/me - 未授权访问")
     void getCurrentUser_shouldReturnErrorWhenUnauthorized() throws Exception {
         mockMvc.perform(get("/api/users/me"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     @Test
@@ -75,8 +75,8 @@ class UserControllerTest {
     void getCurrentUser_shouldReturnErrorWhenInvalidToken() throws Exception {
         mockMvc.perform(get("/api/users/me")
                         .header("Authorization", "Bearer invalidtoken"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     @Test
@@ -100,8 +100,8 @@ class UserControllerTest {
     @DisplayName("GET /api/users - 未授权访问")
     void getAllUsers_shouldReturnErrorWhenUnauthorized() throws Exception {
         mockMvc.perform(get("/api/users"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     @Test
@@ -129,8 +129,8 @@ class UserControllerTest {
     @DisplayName("GET /api/users/{id} - 未授权访问")
     void getUserById_shouldReturnErrorWhenUnauthorized() throws Exception {
         mockMvc.perform(get("/api/users/{id}", testUser.getId()))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 
     @Test
@@ -159,7 +159,7 @@ class UserControllerTest {
     @DisplayName("PUT /api/users/status/{status} - 未授权访问")
     void updateStatus_shouldReturnErrorWhenUnauthorized() throws Exception {
         mockMvc.perform(put("/api/users/status/{status}", "online"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 }
