@@ -33,6 +33,9 @@ public class Message {
     @Column(name = "is_read")
     private Boolean isRead;
 
+    @Column(name = "is_recalled")
+    private Boolean isRecalled;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

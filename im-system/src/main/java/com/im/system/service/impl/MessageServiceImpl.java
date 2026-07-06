@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -134,5 +135,27 @@ public class MessageServiceImpl implements MessageService {
         }
 
         messageRepository.delete(message);
+    }
+
+    @Override
+    @Transactional
+    public void recallMessage(Long messageId, Long userId) {
+        Message message = messageRepository.findById(messageId)
+                .orElseThrow(() -> new RuntimeException("消息不存在"));
+
+        if (Boolean.TRUE.equals(message.getIsRecalled())) {
+            throw new RuntimeException("消息已被撤回");
+        }
+
+        if (!message.getSenderId().equals(userId)) {
+            throw new RuntimeException("只能撤回自己发送的消息");
+        }
+
+        if (message.getCreatedAt().plusMinutes(5).isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("消息发送超过5分钟，无法撤回");
+        }
+
+        message.setIsRecalled(true);
+        messageRepository.save(message);
     }
 }

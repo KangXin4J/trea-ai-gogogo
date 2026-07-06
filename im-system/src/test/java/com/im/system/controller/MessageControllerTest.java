@@ -20,6 +20,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.*;
+import java.time.LocalDateTime;
+
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -381,5 +383,99 @@ class MessageControllerTest {
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.content").isArray())
                 .andExpect(jsonPath("$.data.content").isEmpty());
+    }
+
+    @Test
+    @DisplayName("POST /api/messages/{messageId}/recall - 成功撤回自己的消息")
+    void recallMessage_shouldReturnSuccess() throws Exception {
+        SendMessageRequest sendRequest = new SendMessageRequest();
+        sendRequest.setReceiverId(receiver.getId());
+        sendRequest.setConversationId(conversation.getId());
+        sendRequest.setContent("Test message to recall");
+        Message message = messageService.sendMessage(sender.getId(), sendRequest);
+
+        mockMvc.perform(post("/api/messages/{messageId}/recall", message.getId())
+                        .header("Authorization", "Bearer " + senderToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"));
+
+        Message recalledMessage = messageRepository.findById(message.getId()).orElseThrow();
+        assert recalledMessage.getIsRecalled() != null && recalledMessage.getIsRecalled();
+    }
+
+    @Test
+    @DisplayName("POST /api/messages/{messageId}/recall - 撤回他人消息失败")
+    void recallMessage_shouldReturnErrorWhenNotSender() throws Exception {
+        SendMessageRequest sendRequest = new SendMessageRequest();
+        sendRequest.setReceiverId(receiver.getId());
+        sendRequest.setConversationId(conversation.getId());
+        sendRequest.setContent("Test message");
+        Message message = messageService.sendMessage(sender.getId(), sendRequest);
+
+        String receiverToken = jwtUtil.generateToken(receiver.getId(), receiver.getUsername());
+
+        mockMvc.perform(post("/api/messages/{messageId}/recall", message.getId())
+                        .header("Authorization", "Bearer " + receiverToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/messages/{messageId}/recall - 消息不存在")
+    void recallMessage_shouldReturnErrorWhenMessageNotFound() throws Exception {
+        mockMvc.perform(post("/api/messages/{messageId}/recall", 99999L)
+                        .header("Authorization", "Bearer " + senderToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/messages/{messageId}/recall - 消息已被撤回")
+    void recallMessage_shouldReturnErrorWhenAlreadyRecalled() throws Exception {
+        SendMessageRequest sendRequest = new SendMessageRequest();
+        sendRequest.setReceiverId(receiver.getId());
+        sendRequest.setConversationId(conversation.getId());
+        sendRequest.setContent("Test message");
+        Message message = messageService.sendMessage(sender.getId(), sendRequest);
+
+        messageService.recallMessage(message.getId(), sender.getId());
+
+        mockMvc.perform(post("/api/messages/{messageId}/recall", message.getId())
+                        .header("Authorization", "Bearer " + senderToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/messages/{messageId}/recall - 消息超过5分钟无法撤回")
+    void recallMessage_shouldReturnErrorWhenExceedFiveMinutes() throws Exception {
+        SendMessageRequest sendRequest = new SendMessageRequest();
+        sendRequest.setReceiverId(receiver.getId());
+        sendRequest.setConversationId(conversation.getId());
+        sendRequest.setContent("Test message");
+        Message message = messageService.sendMessage(sender.getId(), sendRequest);
+
+        message.setCreatedAt(LocalDateTime.now().minusMinutes(6));
+        messageRepository.save(message);
+
+        mockMvc.perform(post("/api/messages/{messageId}/recall", message.getId())
+                        .header("Authorization", "Bearer " + senderToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/messages/{messageId}/recall - 未授权访问")
+    void recallMessage_shouldReturnErrorWhenUnauthorized() throws Exception {
+        SendMessageRequest sendRequest = new SendMessageRequest();
+        sendRequest.setReceiverId(receiver.getId());
+        sendRequest.setConversationId(conversation.getId());
+        sendRequest.setContent("Test message");
+        Message message = messageService.sendMessage(sender.getId(), sendRequest);
+
+        mockMvc.perform(post("/api/messages/{messageId}/recall", message.getId()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
     }
 }

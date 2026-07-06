@@ -81,6 +81,13 @@ public class MessageController {
         return Result.success();
     }
 
+    @PostMapping("/{messageId}/recall")
+    public Result<Void> recallMessage(@PathVariable Long messageId, HttpServletRequest httpRequest) {
+        Long userId = getUserIdFromRequest(httpRequest);
+        messageService.recallMessage(messageId, userId);
+        return Result.success();
+    }
+
     private Long getUserIdFromRequest(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {

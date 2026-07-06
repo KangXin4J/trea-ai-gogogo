@@ -23,4 +23,6 @@ public interface MessageService {
     void markAsRead(Long userId, Long conversationId);
 
     void deleteMessage(Long messageId, Long userId);
+
+    void recallMessage(Long messageId, Long userId);
 }
