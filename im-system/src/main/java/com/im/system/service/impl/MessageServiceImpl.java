@@ -1,5 +1,6 @@
 package com.im.system.service.impl;
 
+import com.im.system.dto.PageResponse;
 import com.im.system.dto.SendMessageRequest;
 import com.im.system.entity.Message;
 import com.im.system.repository.ConversationMemberRepository;
@@ -9,6 +10,9 @@ import com.im.system.repository.UserRepository;
 import com.im.system.service.ConversationService;
 import com.im.system.service.MessageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,6 +73,34 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public List<Message> getMessagesByConversationId(Long conversationId) {
         return messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+    }
+
+    @Override
+    public PageResponse<Message> getMessagesByConversationIdPaged(Long userId, Long conversationId, int page, int size) {
+        if (!conversationRepository.existsById(conversationId)) {
+            throw new RuntimeException("会话不存在");
+        }
+
+        conversationMemberRepository.findByConversationIdAndUserId(conversationId, userId)
+                .orElseThrow(() -> new RuntimeException("无权访问该会话"));
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Message> messagePage = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId, pageable);
+        return new PageResponse<>(messagePage.getContent(), page, size, messagePage.getTotalElements());
+    }
+
+    @Override
+    public PageResponse<Message> searchMessages(Long userId, Long conversationId, String keyword, int page, int size) {
+        if (!conversationRepository.existsById(conversationId)) {
+            throw new RuntimeException("会话不存在");
+        }
+
+        conversationMemberRepository.findByConversationIdAndUserId(conversationId, userId)
+                .orElseThrow(() -> new RuntimeException("无权访问该会话"));
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Message> messagePage = messageRepository.searchByConversationIdAndContent(conversationId, keyword, pageable);
+        return new PageResponse<>(messagePage.getContent(), page, size, messagePage.getTotalElements());
     }
 
     @Override

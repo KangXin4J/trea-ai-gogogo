@@ -286,4 +286,100 @@ class MessageControllerTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value(401));
     }
+
+    @Test
+    @DisplayName("GET /api/messages/conversation/{conversationId}/paged - 分页获取消息")
+    void getMessagesByConversationIdPaged_shouldReturnSuccess() throws Exception {
+        SendMessageRequest sendRequest1 = new SendMessageRequest();
+        sendRequest1.setReceiverId(receiver.getId());
+        sendRequest1.setConversationId(conversation.getId());
+        sendRequest1.setContent("First message");
+        messageService.sendMessage(sender.getId(), sendRequest1);
+
+        SendMessageRequest sendRequest2 = new SendMessageRequest();
+        sendRequest2.setReceiverId(receiver.getId());
+        sendRequest2.setConversationId(conversation.getId());
+        sendRequest2.setContent("Second message");
+        messageService.sendMessage(sender.getId(), sendRequest2);
+
+        mockMvc.perform(get("/api/messages/conversation/{conversationId}/paged", conversation.getId())
+                        .param("page", "0")
+                        .param("size", "10")
+                        .header("Authorization", "Bearer " + senderToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content", hasSize(2)))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(10))
+                .andExpect(jsonPath("$.data.totalElements").value(2));
+    }
+
+    @Test
+    @DisplayName("GET /api/messages/conversation/{conversationId}/paged - 无权访问会话")
+    void getMessagesByConversationIdPaged_shouldReturnErrorWhenNotMember() throws Exception {
+        RegisterRequest user3Request = new RegisterRequest();
+        user3Request.setUsername("user3");
+        user3Request.setPassword("test123");
+        User user3 = userService.register(user3Request);
+        String user3Token = jwtUtil.generateToken(user3.getId(), user3.getUsername());
+
+        mockMvc.perform(get("/api/messages/conversation/{conversationId}/paged", conversation.getId())
+                        .header("Authorization", "Bearer " + user3Token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("GET /api/messages/conversation/{conversationId}/paged - 会话不存在")
+    void getMessagesByConversationIdPaged_shouldReturnErrorWhenConversationNotFound() throws Exception {
+        mockMvc.perform(get("/api/messages/conversation/{conversationId}/paged", 99999L)
+                        .header("Authorization", "Bearer " + senderToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("GET /api/messages/conversation/{conversationId}/search - 搜索消息")
+    void searchMessages_shouldReturnSuccess() throws Exception {
+        SendMessageRequest sendRequest1 = new SendMessageRequest();
+        sendRequest1.setReceiverId(receiver.getId());
+        sendRequest1.setConversationId(conversation.getId());
+        sendRequest1.setContent("Hello World");
+        messageService.sendMessage(sender.getId(), sendRequest1);
+
+        SendMessageRequest sendRequest2 = new SendMessageRequest();
+        sendRequest2.setReceiverId(receiver.getId());
+        sendRequest2.setConversationId(conversation.getId());
+        sendRequest2.setContent("Goodbye World");
+        messageService.sendMessage(sender.getId(), sendRequest2);
+
+        mockMvc.perform(get("/api/messages/conversation/{conversationId}/search", conversation.getId())
+                        .param("keyword", "World")
+                        .header("Authorization", "Bearer " + senderToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content", hasSize(2)));
+    }
+
+    @Test
+    @DisplayName("GET /api/messages/conversation/{conversationId}/search - 搜索无匹配")
+    void searchMessages_shouldReturnEmptyWhenNoMatch() throws Exception {
+        SendMessageRequest sendRequest = new SendMessageRequest();
+        sendRequest.setReceiverId(receiver.getId());
+        sendRequest.setConversationId(conversation.getId());
+        sendRequest.setContent("Hello World");
+        messageService.sendMessage(sender.getId(), sendRequest);
+
+        mockMvc.perform(get("/api/messages/conversation/{conversationId}/search", conversation.getId())
+                        .param("keyword", "nonexistent")
+                        .header("Authorization", "Bearer " + senderToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content").isEmpty());
+    }
 }

@@ -1,5 +1,6 @@
 package com.im.system.service;
 
+import com.im.system.dto.PageResponse;
 import com.im.system.dto.SendMessageRequest;
 import com.im.system.entity.Message;
 
@@ -12,6 +13,10 @@ public interface MessageService {
     List<Message> getConversationMessages(Long userId1, Long userId2);
 
     List<Message> getMessagesByConversationId(Long conversationId);
+
+    PageResponse<Message> getMessagesByConversationIdPaged(Long userId, Long conversationId, int page, int size);
+
+    PageResponse<Message> searchMessages(Long userId, Long conversationId, String keyword, int page, int size);
 
     long getUnreadCount(Long userId);
 

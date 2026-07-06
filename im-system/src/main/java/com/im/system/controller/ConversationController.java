@@ -5,6 +5,8 @@ import com.im.system.common.Result;
 import com.im.system.dto.AddMembersRequest;
 import com.im.system.dto.ConversationMemberDTO;
 import com.im.system.dto.CreateConversationRequest;
+import com.im.system.dto.PageResponse;
+import com.im.system.dto.UpdateConversationRequest;
 import com.im.system.entity.Conversation;
 import com.im.system.service.ConversationService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -53,6 +55,15 @@ public class ConversationController {
         return Result.success();
     }
 
+    @PutMapping("/{id}")
+    public Result<Conversation> updateConversation(@PathVariable Long id,
+                                                   @RequestBody UpdateConversationRequest request,
+                                                   HttpServletRequest httpRequest) {
+        Long userId = getUserIdFromRequest(httpRequest);
+        Conversation conversation = conversationService.updateConversation(userId, id, request);
+        return Result.success(conversation);
+    }
+
     @GetMapping("/{id}/members")
     public Result<List<ConversationMemberDTO>> getConversationMembers(@PathVariable Long id,
                                                                        HttpServletRequest httpRequest) {
@@ -77,6 +88,17 @@ public class ConversationController {
         Long userId = getUserIdFromRequest(httpRequest);
         List<ConversationMemberDTO> members = conversationService.removeMember(userId, id, memberId);
         return Result.success(members);
+    }
+
+    @GetMapping("/search")
+    public Result<PageResponse<Conversation>> searchConversations(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            HttpServletRequest httpRequest) {
+        Long userId = getUserIdFromRequest(httpRequest);
+        PageResponse<Conversation> conversations = conversationService.searchConversations(userId, keyword, page, size);
+        return Result.success(conversations);
     }
 
     private Long getUserIdFromRequest(HttpServletRequest request) {

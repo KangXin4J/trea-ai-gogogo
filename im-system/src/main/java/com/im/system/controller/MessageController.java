@@ -2,6 +2,7 @@ package com.im.system.controller;
 
 import com.im.system.common.JwtUtil;
 import com.im.system.common.Result;
+import com.im.system.dto.PageResponse;
 import com.im.system.dto.SendMessageRequest;
 import com.im.system.entity.Message;
 import com.im.system.service.MessageService;
@@ -48,6 +49,29 @@ public class MessageController {
         Long userId = getUserIdFromRequest(httpRequest);
         messageService.markAsRead(userId, conversationId);
         return Result.success();
+    }
+
+    @GetMapping("/conversation/{conversationId}/paged")
+    public Result<PageResponse<Message>> getMessagesByConversationIdPaged(
+            @PathVariable Long conversationId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            HttpServletRequest httpRequest) {
+        Long userId = getUserIdFromRequest(httpRequest);
+        PageResponse<Message> messages = messageService.getMessagesByConversationIdPaged(userId, conversationId, page, size);
+        return Result.success(messages);
+    }
+
+    @GetMapping("/conversation/{conversationId}/search")
+    public Result<PageResponse<Message>> searchMessages(
+            @PathVariable Long conversationId,
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            HttpServletRequest httpRequest) {
+        Long userId = getUserIdFromRequest(httpRequest);
+        PageResponse<Message> messages = messageService.searchMessages(userId, conversationId, keyword, page, size);
+        return Result.success(messages);
     }
 
     private Long getUserIdFromRequest(HttpServletRequest request) {

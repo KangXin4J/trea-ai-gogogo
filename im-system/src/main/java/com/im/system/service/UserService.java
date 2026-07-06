@@ -1,6 +1,7 @@
 package com.im.system.service;
 
 import com.im.system.dto.LoginRequest;
+import com.im.system.dto.PageResponse;
 import com.im.system.dto.RegisterRequest;
 import com.im.system.entity.User;
 
@@ -18,6 +19,8 @@ public interface UserService {
     Optional<User> findByUsername(String username);
 
     List<User> findAll();
+
+    PageResponse<User> searchUsers(String keyword, int page, int size);
 
     User updateUserStatus(Long userId, String status);
 }

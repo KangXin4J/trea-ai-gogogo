@@ -1,6 +1,8 @@
 package com.im.system.repository;
 
 import com.im.system.entity.Conversation;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,4 +15,7 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
 
     @Query("SELECT c FROM Conversation c WHERE c.id IN (SELECT cm.conversationId FROM ConversationMember cm WHERE cm.userId = :userId) ORDER BY c.lastMessageTime DESC")
     List<Conversation> findByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT c FROM Conversation c WHERE c.id IN (SELECT cm.conversationId FROM ConversationMember cm WHERE cm.userId = :userId) AND c.name LIKE %:keyword% ORDER BY c.lastMessageTime DESC")
+    Page<Conversation> searchByUserIdAndName(@Param("userId") Long userId, @Param("keyword") String keyword, Pageable pageable);
 }

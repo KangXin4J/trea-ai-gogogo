@@ -162,4 +162,47 @@ class UserControllerTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value(401));
     }
+
+    @Test
+    @DisplayName("GET /api/users/search - 搜索用户")
+    void searchUsers_shouldReturnSuccess() throws Exception {
+        RegisterRequest registerRequest2 = new RegisterRequest();
+        registerRequest2.setUsername("john_doe");
+        registerRequest2.setPassword("test123");
+        userService.register(registerRequest2);
+
+        mockMvc.perform(get("/api/users/search")
+                        .param("keyword", "john")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content", hasSize(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(20))
+                .andExpect(jsonPath("$.data.totalElements").value(greaterThanOrEqualTo(1)));
+    }
+
+    @Test
+    @DisplayName("GET /api/users/search - 未授权访问")
+    void searchUsers_shouldReturnErrorWhenUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/users/search")
+                        .param("keyword", "test"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(401));
+    }
+
+    @Test
+    @DisplayName("GET /api/users/search - 搜索不存在的用户")
+    void searchUsers_shouldReturnEmptyWhenNoMatch() throws Exception {
+        mockMvc.perform(get("/api/users/search")
+                        .param("keyword", "nonexistentuser")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content").isEmpty())
+                .andExpect(jsonPath("$.data.totalElements").value(0));
+    }
 }

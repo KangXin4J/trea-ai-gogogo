@@ -2,6 +2,7 @@ package com.im.system.controller;
 
 import com.im.system.common.JwtUtil;
 import com.im.system.common.Result;
+import com.im.system.dto.PageResponse;
 import com.im.system.entity.User;
 import com.im.system.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,6 +44,17 @@ public class UserController {
         Long userId = getUserIdFromRequest(request);
         User user = userService.updateUserStatus(userId, status);
         return Result.success(user);
+    }
+
+    @GetMapping("/search")
+    public Result<PageResponse<User>> searchUsers(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            HttpServletRequest request) {
+        getUserIdFromRequest(request);
+        PageResponse<User> users = userService.searchUsers(keyword, page, size);
+        return Result.success(users);
     }
 
     private Long getUserIdFromRequest(HttpServletRequest request) {

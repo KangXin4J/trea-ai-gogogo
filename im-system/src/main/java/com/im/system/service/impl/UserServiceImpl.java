@@ -2,11 +2,15 @@ package com.im.system.service.impl;
 
 import com.im.system.common.JwtUtil;
 import com.im.system.dto.LoginRequest;
+import com.im.system.dto.PageResponse;
 import com.im.system.dto.RegisterRequest;
 import com.im.system.entity.User;
 import com.im.system.repository.UserRepository;
 import com.im.system.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,6 +72,13 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<User> findAll() {
         return userRepository.findAll();
+    }
+
+    @Override
+    public PageResponse<User> searchUsers(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> userPage = userRepository.findByUsernameContainingIgnoreCase(keyword, pageable);
+        return new PageResponse<>(userPage.getContent(), page, size, userPage.getTotalElements());
     }
 
     @Override

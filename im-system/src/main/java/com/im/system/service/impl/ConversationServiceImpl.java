@@ -3,6 +3,8 @@ package com.im.system.service.impl;
 import com.im.system.dto.AddMembersRequest;
 import com.im.system.dto.ConversationMemberDTO;
 import com.im.system.dto.CreateConversationRequest;
+import com.im.system.dto.PageResponse;
+import com.im.system.dto.UpdateConversationRequest;
 import com.im.system.entity.Conversation;
 import com.im.system.entity.ConversationMember;
 import com.im.system.repository.ConversationMemberRepository;
@@ -10,6 +12,9 @@ import com.im.system.repository.ConversationRepository;
 import com.im.system.repository.UserRepository;
 import com.im.system.service.ConversationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -83,6 +88,25 @@ public class ConversationServiceImpl implements ConversationService {
 
     @Override
     @Transactional
+    public Conversation updateConversation(Long userId, Long conversationId, UpdateConversationRequest request) {
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("会话不存在"));
+
+        conversationMemberRepository.findByConversationIdAndUserId(conversationId, userId)
+                .orElseThrow(() -> new RuntimeException("无权更新该会话"));
+
+        if (request.getName() != null) {
+            conversation.setName(request.getName());
+        }
+        if (request.getType() != null) {
+            conversation.setType(request.getType());
+        }
+
+        return conversationRepository.save(conversation);
+    }
+
+    @Override
+    @Transactional
     public void updateConversationLastMessage(Long conversationId, String content) {
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new RuntimeException("会话不存在"));
@@ -147,5 +171,12 @@ public class ConversationServiceImpl implements ConversationService {
         conversationMemberRepository.delete(member);
 
         return conversationMemberRepository.findMembersByConversationId(conversationId);
+    }
+
+    @Override
+    public PageResponse<Conversation> searchConversations(Long userId, String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Conversation> conversationPage = conversationRepository.searchByUserIdAndName(userId, keyword, pageable);
+        return new PageResponse<>(conversationPage.getContent(), page, size, conversationPage.getTotalElements());
     }
 }
