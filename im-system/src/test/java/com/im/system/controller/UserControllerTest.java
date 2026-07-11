@@ -60,7 +60,8 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message").value("success"))
                 .andExpect(jsonPath("$.data.username").value("testuser"))
-                .andExpect(jsonPath("$.data.id").value(testUser.getId()));
+                .andExpect(jsonPath("$.data.id").value(testUser.getId()))
+                .andExpect(jsonPath("$.data.password").doesNotExist());
     }
 
     @Test
