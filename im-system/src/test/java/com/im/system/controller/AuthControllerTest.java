@@ -125,6 +125,23 @@ class AuthControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/auth/register - 密码长度不能少于6位")
+    void register_shouldReturnErrorWhenPasswordTooShort() throws Exception {
+        String jsonRequest = """
+                {
+                    "username": "newuser",
+                    "password": "abc"
+                }
+                """;
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
     @DisplayName("POST /api/auth/login - 成功登录")
     void login_shouldReturnSuccess() throws Exception {
         String jsonRequest = """
