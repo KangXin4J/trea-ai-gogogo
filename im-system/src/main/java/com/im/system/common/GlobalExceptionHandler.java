@@ -53,6 +53,13 @@ public class GlobalExceptionHandler {
                 .body(Result.error(HttpStatus.UNAUTHORIZED.value(), e.getMessage()));
     }
 
+    @ExceptionHandler(AccountLockedException.class)
+    public ResponseEntity<Result<Void>> handleAccountLockedException(AccountLockedException e) {
+        log.error("账号锁定异常: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(Result.error(HttpStatus.TOO_MANY_REQUESTS.value(), e.getMessage()));
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Result<Void>> handleRuntimeException(RuntimeException e) {
         log.error("运行时异常: {}", e.getMessage(), e);

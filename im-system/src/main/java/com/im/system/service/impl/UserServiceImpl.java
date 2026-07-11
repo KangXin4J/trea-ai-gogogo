@@ -1,15 +1,19 @@
 package com.im.system.service.impl;
 
+import com.im.system.common.AccountLockedException;
 import com.im.system.common.JwtUtil;
 import com.im.system.common.UserStatus;
 import com.im.system.dto.LoginRequest;
 import com.im.system.dto.PageResponse;
 import com.im.system.dto.RegisterRequest;
 import com.im.system.dto.UpdateUserRequest;
+import com.im.system.entity.LoginAttempt;
 import com.im.system.entity.User;
+import com.im.system.repository.LoginAttemptRepository;
 import com.im.system.repository.UserRepository;
 import com.im.system.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,31 +21,65 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
+    private static final int MAX_FAILED_ATTEMPTS = 5;
+    private static final int LOCK_DURATION_MINUTES = 15;
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final LoginAttemptRepository loginAttemptRepository;
 
     @Override
+    @Transactional
     public String login(LoginRequest request) {
         String username = request.getUsername().trim();
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("用户名或密码错误"));
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        LocalDateTime lockTimeWindow = LocalDateTime.now().minusMinutes(LOCK_DURATION_MINUTES);
+        long failedAttempts = loginAttemptRepository.countByUsernameAndAttemptTimeAfterAndSuccessFalse(username, lockTimeWindow);
+
+        if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+            throw new AccountLockedException("账号已被锁定，请15分钟后再试");
+        }
+
+        Optional<User> userOptional = userRepository.findByUsername(username);
+
+        if (userOptional.isEmpty()) {
+            recordLoginAttempt(null, username, false);
             throw new RuntimeException("用户名或密码错误");
         }
+
+        User user = userOptional.get();
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            recordLoginAttempt(user.getId(), username, false);
+            throw new RuntimeException("用户名或密码错误");
+        }
+
+        loginAttemptRepository.deleteByUsernameAndSuccessFalse(username);
+        recordLoginAttempt(user.getId(), username, true);
 
         user.setStatus("ONLINE");
         userRepository.save(user);
 
         return jwtUtil.generateToken(user.getId(), user.getUsername());
+    }
+
+    private void recordLoginAttempt(Long userId, String username, Boolean success) {
+        LoginAttempt attempt = new LoginAttempt();
+        attempt.setUserId(userId);
+        attempt.setUsername(username);
+        attempt.setSuccess(success);
+        loginAttemptRepository.save(attempt);
+        log.info("登录尝试记录: username={}, userId={}, success={}", username, userId, success);
     }
 
     @Override

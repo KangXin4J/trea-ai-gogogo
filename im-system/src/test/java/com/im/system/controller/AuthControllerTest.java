@@ -244,4 +244,75 @@ class AuthControllerTest {
         User updatedUser = userRepository.findById(testUser.getId()).orElseThrow();
         assert updatedUser.getStatus().equals("OFFLINE");
     }
+
+    @Test
+    @DisplayName("POST /api/auth/login - 连续5次失败后第6次返回429")
+    void login_shouldReturn429After5FailedAttempts() throws Exception {
+        String jsonRequest = """
+                {
+                    "username": "testuser",
+                    "password": "wrongpassword"
+                }
+                """;
+
+        for (int i = 0; i < 5; i++) {
+            mockMvc.perform(post("/api/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(jsonRequest))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value(400));
+        }
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value(429));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/login - 成功登录后失败计数清零")
+    void login_shouldResetFailedCountAfterSuccessfulLogin() throws Exception {
+        String wrongPasswordRequest = """
+                {
+                    "username": "testuser",
+                    "password": "wrongpassword"
+                }
+                """;
+
+        String correctPasswordRequest = """
+                {
+                    "username": "testuser",
+                    "password": "test123"
+                }
+                """;
+
+        for (int i = 0; i < 4; i++) {
+            mockMvc.perform(post("/api/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(wrongPasswordRequest))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value(400));
+        }
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(correctPasswordRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        for (int i = 0; i < 5; i++) {
+            mockMvc.perform(post("/api/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(wrongPasswordRequest))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value(400));
+        }
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(wrongPasswordRequest))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value(429));
+    }
 }
