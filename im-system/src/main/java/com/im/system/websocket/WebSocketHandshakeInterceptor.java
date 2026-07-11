@@ -3,6 +3,7 @@ package com.im.system.websocket;
 import com.im.system.common.JwtUtil;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
@@ -42,7 +43,8 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
                 return true;
             }
         }
-        return true;
+        response.setStatusCode(HttpStatus.UNAUTHORIZED);
+        return false;
     }
 
     @Override
