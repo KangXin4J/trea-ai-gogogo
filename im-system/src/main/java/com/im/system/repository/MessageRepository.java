@@ -24,4 +24,9 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     @Query("SELECT m FROM Message m WHERE m.conversationId = :conversationId AND m.content LIKE %:keyword% ORDER BY m.createdAt DESC")
     Page<Message> searchByConversationIdAndContent(@Param("conversationId") Long conversationId, @Param("keyword") String keyword, Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query("UPDATE Message m SET m.isRead = true WHERE m.conversationId = :conversationId AND m.receiverId = :userId AND m.isRead = false")
+    void markAsReadByConversationIdAndReceiverId(@Param("conversationId") Long conversationId, @Param("userId") Long userId);
 }

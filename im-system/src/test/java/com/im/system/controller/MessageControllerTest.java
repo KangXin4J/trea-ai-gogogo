@@ -290,6 +290,31 @@ class MessageControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/messages/mark-read/{conversationId} - 非会话成员无权标记已读")
+    void markAsRead_shouldReturnErrorWhenNotMember() throws Exception {
+        RegisterRequest user3Request = new RegisterRequest();
+        user3Request.setUsername("user3");
+        user3Request.setPassword("test123");
+        User user3 = userService.register(user3Request);
+        String user3Token = jwtUtil.generateToken(user3.getId(), user3.getUsername());
+
+        mockMvc.perform(post("/api/messages/mark-read/{conversationId}", conversation.getId())
+                        .header("Authorization", "Bearer " + user3Token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
+    @DisplayName("POST /api/messages/mark-read/{conversationId} - 会话不存在")
+    void markAsRead_shouldReturnErrorWhenConversationNotFound() throws Exception {
+        String receiverToken = jwtUtil.generateToken(receiver.getId(), receiver.getUsername());
+        mockMvc.perform(post("/api/messages/mark-read/{conversationId}", 99999L)
+                        .header("Authorization", "Bearer " + receiverToken))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
     @DisplayName("GET /api/messages/conversation/{conversationId}/paged - 分页获取消息")
     void getMessagesByConversationIdPaged_shouldReturnSuccess() throws Exception {
         SendMessageRequest sendRequest1 = new SendMessageRequest();

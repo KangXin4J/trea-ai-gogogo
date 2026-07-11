@@ -112,16 +112,18 @@ public class MessageServiceImpl implements MessageService {
     @Override
     @Transactional
     public void markAsRead(Long userId, Long conversationId) {
-        List<Message> messages;
-        if (conversationId != null) {
-            messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
-        } else {
-            messages = messageRepository.findAll();
+        if (conversationId == null) {
+            throw new RuntimeException("会话ID不能为空");
         }
-        messages.stream()
-                .filter(m -> m.getReceiverId().equals(userId) && !m.getIsRead())
-                .forEach(m -> m.setIsRead(true));
-        messageRepository.saveAll(messages);
+
+        if (!conversationRepository.existsById(conversationId)) {
+            throw new RuntimeException("会话不存在");
+        }
+
+        conversationMemberRepository.findByConversationIdAndUserId(conversationId, userId)
+                .orElseThrow(() -> new RuntimeException("无权操作该会话"));
+
+        messageRepository.markAsReadByConversationIdAndReceiverId(conversationId, userId);
     }
 
     @Override
