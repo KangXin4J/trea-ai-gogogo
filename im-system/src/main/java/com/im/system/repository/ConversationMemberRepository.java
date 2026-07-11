@@ -21,6 +21,8 @@ public interface ConversationMemberRepository extends JpaRepository<Conversation
 
     Optional<ConversationMember> findByConversationIdAndUserId(Long conversationId, Long userId);
 
+    long countByConversationId(Long conversationId);
+
     @Modifying
     @Transactional
     @Query("DELETE FROM ConversationMember cm WHERE cm.conversationId = :conversationId")

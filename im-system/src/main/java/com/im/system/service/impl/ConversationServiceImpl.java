@@ -48,6 +48,20 @@ public class ConversationServiceImpl implements ConversationService {
     @Override
     @Transactional
     public Conversation createConversation(Long userId, CreateConversationRequest request) {
+        List<Long> memberIds = request.getMemberIds();
+
+        if (memberIds.size() > 50) {
+            throw new RuntimeException("成员数量不能超过50个");
+        }
+
+        List<Long> distinctMemberIds = memberIds.stream().distinct().toList();
+
+        for (Long memberId : distinctMemberIds) {
+            if (!userRepository.existsById(memberId)) {
+                throw new RuntimeException("用户不存在: " + memberId);
+            }
+        }
+
         Conversation conversation = new Conversation();
         conversation.setType(request.getType());
         conversation.setName(request.getName());
@@ -61,7 +75,7 @@ public class ConversationServiceImpl implements ConversationService {
         creatorMember.setUserId(userId);
         conversationMemberRepository.save(creatorMember);
 
-        for (Long memberId : request.getMemberIds()) {
+        for (Long memberId : distinctMemberIds) {
             if (!memberId.equals(userId)) {
                 ConversationMember member = new ConversationMember();
                 member.setConversationId(savedConversation.getId());

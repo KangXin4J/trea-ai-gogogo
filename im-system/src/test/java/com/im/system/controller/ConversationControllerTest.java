@@ -215,6 +215,77 @@ class ConversationControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/conversations - 成员数量不能超过50个")
+    void createConversation_shouldReturnErrorWhenMemberIdsExceedsLimit() throws Exception {
+        StringBuilder memberIdsBuilder = new StringBuilder();
+        memberIdsBuilder.append("[");
+        for (int i = 0; i < 51; i++) {
+            if (i > 0) {
+                memberIdsBuilder.append(",");
+            }
+            memberIdsBuilder.append(user2.getId());
+        }
+        memberIdsBuilder.append("]");
+
+        String jsonRequest = String.format("""
+                {
+                    "type": "GROUP",
+                    "memberIds": %s,
+                    "name": "Too Many Members"
+                }
+                """, memberIdsBuilder);
+
+        mockMvc.perform(post("/api/conversations")
+                        .header("Authorization", "Bearer " + user1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value("成员数量不能超过50个"));
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations - 重复成员会被去重")
+    void createConversation_shouldDeduplicateMemberIds() throws Exception {
+        String jsonRequest = String.format("""
+                {
+                    "type": "GROUP",
+                    "memberIds": [%d, %d, %d],
+                    "name": "Group with Duplicates"
+                }
+                """, user2.getId(), user2.getId(), user2.getId());
+
+        mockMvc.perform(post("/api/conversations")
+                        .header("Authorization", "Bearer " + user1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        Long conversationId = conversationRepository.findAll().get(0).getId();
+        long memberCount = conversationMemberRepository.countByConversationId(conversationId);
+        org.junit.jupiter.api.Assertions.assertEquals(2, memberCount);
+    }
+
+    @Test
+    @DisplayName("POST /api/conversations - 成员包含不存在的用户")
+    void createConversation_shouldReturnErrorWhenMemberNotFound() throws Exception {
+        String jsonRequest = String.format("""
+                {
+                    "type": "PRIVATE",
+                    "memberIds": [%d, 99999]
+                }
+                """, user2.getId());
+
+        mockMvc.perform(post("/api/conversations")
+                        .header("Authorization", "Bearer " + user1Token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonRequest))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
+    }
+
+    @Test
     @DisplayName("GET /api/conversations/{id} - 获取会话详情")
     void getConversationById_shouldReturnSuccess() throws Exception {
         CreateConversationRequest createRequest = new CreateConversationRequest();
