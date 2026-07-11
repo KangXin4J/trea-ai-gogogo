@@ -138,23 +138,32 @@ class UserControllerTest {
     @Test
     @DisplayName("PUT /api/users/status/{status} - 更新用户状态")
     void updateStatus_shouldReturnSuccess() throws Exception {
-        mockMvc.perform(put("/api/users/status/{status}", "online")
+        mockMvc.perform(put("/api/users/status/{status}", "ONLINE")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message").value("success"))
-                .andExpect(jsonPath("$.data.status").value("online"))
+                .andExpect(jsonPath("$.data.status").value("ONLINE"))
                 .andExpect(jsonPath("$.data.id").value(testUser.getId()));
     }
 
     @Test
     @DisplayName("PUT /api/users/status/{status} - 更新为离线状态")
     void updateStatus_shouldReturnSuccessForOffline() throws Exception {
-        mockMvc.perform(put("/api/users/status/{status}", "offline")
+        mockMvc.perform(put("/api/users/status/{status}", "OFFLINE")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.status").value("offline"));
+                .andExpect(jsonPath("$.data.status").value("OFFLINE"));
+    }
+
+    @Test
+    @DisplayName("PUT /api/users/status/{status} - 非法状态值返回400")
+    void updateStatus_shouldReturnErrorWhenInvalidStatus() throws Exception {
+        mockMvc.perform(put("/api/users/status/{status}", "HACKED")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400));
     }
 
     @Test

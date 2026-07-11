@@ -62,6 +62,8 @@ public class AuthController {
         Long userId = jwtUtil.getUserIdFromToken(token);
         Date expiresAt = jwtUtil.getExpirationDateFromToken(token);
 
+        userService.updateUserStatus(userId, "OFFLINE");
+
         BlacklistedToken blacklistedToken = new BlacklistedToken();
         blacklistedToken.setToken(token);
         blacklistedToken.setUserId(userId);

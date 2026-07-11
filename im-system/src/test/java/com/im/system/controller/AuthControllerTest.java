@@ -1,5 +1,6 @@
 package com.im.system.controller;
 
+import com.im.system.common.JwtUtil;
 import com.im.system.dto.LoginRequest;
 import com.im.system.dto.RegisterRequest;
 import com.im.system.entity.User;
@@ -32,6 +33,9 @@ class AuthControllerTest {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     private User testUser;
 
@@ -207,5 +211,20 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.token").exists());
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/logout - 登出后状态变为OFFLINE")
+    void logout_shouldSetStatusToOffline() throws Exception {
+        String token = jwtUtil.generateToken(testUser.getId(), testUser.getUsername());
+        userService.updateUserStatus(testUser.getId(), "ONLINE");
+
+        mockMvc.perform(post("/api/auth/logout")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        User updatedUser = userRepository.findById(testUser.getId()).orElseThrow();
+        assert updatedUser.getStatus().equals("OFFLINE");
     }
 }

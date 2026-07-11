@@ -1,6 +1,7 @@
 package com.im.system.service.impl;
 
 import com.im.system.common.JwtUtil;
+import com.im.system.common.UserStatus;
 import com.im.system.dto.LoginRequest;
 import com.im.system.dto.PageResponse;
 import com.im.system.dto.RegisterRequest;
@@ -85,9 +86,18 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public User updateUserStatus(Long userId, String status) {
+        if (status == null) {
+            throw new RuntimeException("用户状态值不能为空");
+        }
+        try {
+            UserStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("无效的用户状态值: " + status + "，有效值为 ONLINE、OFFLINE、BUSY、AWAY");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
-        user.setStatus(status);
+        user.setStatus(status.toUpperCase());
         return userRepository.save(user);
     }
 
